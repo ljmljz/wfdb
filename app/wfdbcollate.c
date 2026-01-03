@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     exit(0);
 }
 
-static splitrecord(int argc, char *argv[])
+static void splitrecord(int argc, char *argv[])
 {
     int framelen, i, segnumber = 0, nsig;
     static char *irecname, *orecname, segname[15], sigfname[19];
