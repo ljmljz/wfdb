@@ -86,11 +86,12 @@ sufficiently long).
 #include <wfdb/ecgmap.h>
 #define PBLEN	12	/* size of predictor array */
 
-char *pname, *prog_name();
+static char *pname;
+static char *prog_name(char *s);
+static void getnormal(WFDB_Annotation *ap);
+static void help(void);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     char *record = NULL;
     static double alpha = 0.75, bestpe, pe[PBLEN], rrmax, sps, worstpe;
@@ -99,7 +100,6 @@ char *argv[];
     static WFDB_Anninfo an[2];
     static WFDB_Annotation in_ann, out_ann;
     static WFDB_Time from, from0, next, to;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -315,8 +315,7 @@ char *argv[];
     }
 }
 
-getnormal(ap)
-WFDB_Annotation *ap;
+static void getnormal(WFDB_Annotation *ap)
 {
     do {
 	if (getann(0, ap) < 0) {
@@ -326,8 +325,7 @@ WFDB_Annotation *ap;
     } while (map2(ap->anntyp) != NORMAL);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -359,7 +357,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

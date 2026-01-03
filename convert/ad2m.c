@@ -28,6 +28,8 @@ generates header files.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef __STDC__
 #define RB	"rb"
 #else
@@ -35,7 +37,6 @@ generates header files.
 #define RB	"rb"
 #else
 #define RB	"r"
-extern void exit();
 #endif
 #endif
 
@@ -44,17 +45,17 @@ extern void exit();
 #define EODF	0100000	/* AHA data file end-of-data marker */
 #define FNLEN	12	/* maximum length for signal file name */
 
-char *pname;
+static char *prog_name(const char *s);
+static void help(void);
+static int getcvec(int *v);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char dfname[FNLEN], *ifname = NULL, *p, *record = NULL, *prog_name();
-    int cflag = 0, i, v[2], getcvec();
+    char dfname[FNLEN], *ifname = NULL, *p, *record = NULL;
+    int cflag = 0, i, v[2];
     long t = 0L, start_time = 0L, end_time = 0L;
     static WFDB_Siginfo dfarray[2];
-    void help();
+    const char *pname;
 
     pname = prog_name(argv[0]);
     (void)setsampfreq(250.);
@@ -141,7 +142,7 @@ char *argv[];
 	    }
     }
 
-    if (end_time == 0L && strlen(record) == 4) {      /* assume AHA DB input */
+    if (end_time == 0L && strlen(record) == 4) {	  /* assume AHA DB input */
 	if (record[1] == '2' || record[1] == '3')     /* short format record */
 	    end_time = strtim("35:0");
 	else if (record[1] == '0' || record[1] == '1') /* long format record */
@@ -153,7 +154,7 @@ char *argv[];
                "%s: warning: end time not specified, output may be truncated\n",
 		      pname);
 	(void)fprintf(stderr,
-		      "               rerun with -t TIME to override\n");
+		      "\t       rerun with -t TIME to override\n");
 	end_time = start_time + strtim("100:0:0");
     }
 
@@ -194,8 +195,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-int getcvec(v)
-int *v;
+static int getcvec(int *v)
 {
     int x, y;
     static int v0, v1;
@@ -229,24 +229,23 @@ int *v;
     return (2);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(const char *s)
 {
-    char *p = s + strlen(s);
+    const char *p = s + strlen(s);
 
 #ifdef MSDOS
     while (p >= s && *p != '\\' && *p != ':') {
 	if (*p == '.')
-	    *p = '\0';		/* strip off extension */
+	    *(char *)p = '\0';		/* strip off extension */
 	if ('A' <= *p && *p <= 'Z')
-	    *p += 'a' - 'A';	/* convert to lower case */
+	    *(char *)p += 'a' - 'A';	/* convert to lower case */
 	p--;
     }
 #else
     while (p >= s && *p != '/')
 	p--;
 #endif
-    return (p+1);
+    return (char *)(p+1);
 }
 
 static char *help_strings[] = {
@@ -266,9 +265,10 @@ static char *help_strings[] = {
     NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
+    const char *pname = prog_name("ad2m");
 
     (void)fprintf(stderr, help_strings[0], pname);
     for (i = 1; help_strings[i] != NULL; i++)

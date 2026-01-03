@@ -31,8 +31,9 @@ _______________________________________________________________________________
 extern void exit();
 #endif
 
-g16(fp)
-FILE *fp;
+static int g16(FILE *fp);
+
+static int g16(FILE *fp)
 {
     int h, l;
 
@@ -41,9 +42,7 @@ FILE *fp;
     return (((h << 8) & 0xff00) | (l & 0xff));
 }
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     int dasize, ansize;
     long dcount, acount;

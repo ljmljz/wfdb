@@ -29,11 +29,9 @@ _______________________________________________________________________________
 
 char *pname;
 
-main(argc, argv)
-int argc;
-char **argv;
+int main(int argc, char **argv)
 {
-    void help();
+    void help(void);
 
     pname = argv[0];
     switch (argc) {
@@ -71,7 +69,7 @@ char **argv;
     }
 }
 
-void help()
+void help(void)
 {
     fprintf(stderr, "usage: %s [OPTION] RECORD\n", pname);
     fprintf(stderr,

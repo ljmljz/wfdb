@@ -43,13 +43,15 @@ static void expand_var(const char *var)
     SFREE(buffer);
 }
 
-char *pname;
+static char *pname;
 
-main(int argc, char **argv)
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char **argv)
 {
-    char *filename, *prog_name(char *s);
+    char *filename;
     int i;
-    void help(void);
 
     pname = prog_name(argv[0]);
     if (argc == 1) {
@@ -70,7 +72,7 @@ main(int argc, char **argv)
     exit(0);
 }
 
-char *prog_name(char *s)
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -94,7 +96,7 @@ static char *help_strings[] = {
     NULL
 };
 
-void help(void)
+static void help(void)
 {
     int i;
 

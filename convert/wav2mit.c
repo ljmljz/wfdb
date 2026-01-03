@@ -72,38 +72,39 @@ Bytes 44 - L-1: sample data, consisting of:
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 
-char *pname;	/* name of this program, for use in error messages */
 int errflag=0;	/* non-zero if EOF reached in input file */
 FILE *ifile;	/* input (.wav) file pointer */
 
-short in16(void);
-long in32(void);
-char *prog_name(char *);
-void help(void);
+static short in16(void);
+static long in32(void);
+static char *prog_name(char *s);
+static void help(const char *pname);
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-    char buf[80], *ifname, *record = NULL;
+    char buf[80], *ifname = NULL, *record = NULL;
     double sps, wgain;
     int bitspersample, bytespersecond, framelen, i, nsig, tag, wres;
     long flen, len, wnsamp;
     static WFDB_Siginfo *s;
+    const char *pname = prog_name(argv[0]);
 
     /* Interpret the command line. */
-    pname = prog_name(argv[0]);
     for (i = 1; i < argc; i++) {
 	if (*argv[i] == '-') switch (*(argv[i]+1)) {
 	  case 'h':	/* help requested */
-	    help();
+	    help(pname);
 	    exit(1);
 	    break;
 	  case 'i':	/* input file name follows */
 	    if (++i >= argc) {
 		(void)fprintf(stderr,
 		      "%s: name of wav-format input file must follow -i\n",
-			      pname);
+		      pname);
 		exit(1);
 	    }
 	    ifname = argv[i];
@@ -136,7 +137,7 @@ main(int argc, char **argv)
 
     /* Check that required arguments are present and valid. */
     if (ifname == NULL) {
-	help();
+	help(pname);
 	exit(1);
     }
 
@@ -258,7 +259,7 @@ main(int argc, char **argv)
     exit(0);
 }
 
-short in16()
+static short in16(void)
 {
     short a, b, r;
 
@@ -270,7 +271,7 @@ short in16()
     return (r);
 }
 
-long in32()
+static long in32(void)
 {
     long a, b, c, d, r;
 
@@ -284,7 +285,7 @@ long in32()
     return (r);
 }
 
-char *prog_name(char *s)
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -312,7 +313,7 @@ static char *help_strings[] = {
     NULL
 };
 
-void help()
+static void help(const char *pname)
 {
     int i;
 

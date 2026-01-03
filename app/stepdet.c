@@ -38,13 +38,14 @@ as input to stepdet.
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgcodes.h>
 
-char *pname;
+static char *pname;
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char *argv[])
 {
-    char *p, *record = NULL, *prog_name();
+    char *p, *record = NULL;
     int i, minutes = 0, nsig, signal = -1, time, tdown = 450, tup = 550, *v,
 	v0, v1;
     WFDB_Time from = 0L, next_minute, now, spm, to = 0L;
@@ -52,7 +53,6 @@ char *argv[];
     WFDB_Annotation annot;
     static int gvmode = WFDB_LOWRES;
     static WFDB_Siginfo *s;
-    void help();
 
     pname = prog_name(argv[0]);
     a.name = "steps"; a.stat = WFDB_WRITE;
@@ -201,8 +201,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -235,7 +234,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

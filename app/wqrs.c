@@ -86,6 +86,9 @@ int sig = -1;	        /* signal number of signal to be analyzed */
 int Tm = TmDEF;		/* minimum threshold value */
 WFDB_Sample *lbuf = NULL;
 
+static char *prog_name(char *s);
+static void help(void);
+
 /* ltsamp() returns a sample of the length transform of the input at time t.
    Since this program analyzes only one signal, ltsamp() does not have an
    input argument for specifying a signal number; rather, it always filters
@@ -137,7 +140,7 @@ WFDB_Sample ltsamp(WFDB_Time t)
     return (lbuf[t&(BUFLN-1)]);
 }
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 { 
     char *p;
     char *record = NULL;	     /* input record name */
@@ -161,8 +164,6 @@ main(int argc, char **argv)
     WFDB_Siginfo *s;
     WFDB_Time from = 0L, next_minute, spm, t, tj, tpq, to = 0L, tt, t1;
     static int gvmode = WFDB_GVPAD | WFDB_LOWRES;
-    char *prog_name();
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -451,8 +452,7 @@ main(int argc, char **argv)
     exit(0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -494,7 +494,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

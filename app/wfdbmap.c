@@ -31,19 +31,19 @@ The file signal-colors.h in this directory defines the colors used by wfdbmap.
 #include <wfdb/ecgcodes.h>
 #include <wfdb/ecgmap.h>
 
-char *pname;
-WFDB_Anninfo *ai = NULL;
-WFDB_Siginfo *si = NULL;
-int mflag = 0;
-int spm;
+static char *pname;
+static WFDB_Anninfo *ai = NULL;
+static WFDB_Siginfo *si = NULL;
+static int mflag = 0;
+static int spm;
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char *argv[])
 {
-    char *record = NULL, *prog_name();
+    char *record = NULL;
     int i, j, length, **map = NULL, nann = 0, nsig;
-    void help();
     void map_sig(char *record, WFDB_Siginfo *si, int nsig,int **map,int length);
     void map_ann(char *record, WFDB_Anninfo *ai, int nann,int **map,int length);
     void write_map(int **map, int nsig, int nann, int length);
@@ -442,8 +442,7 @@ void write_script(int **map, int nsig, int nann, int length)
 	       2.*(i+1), si[i].desc);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -469,7 +468,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

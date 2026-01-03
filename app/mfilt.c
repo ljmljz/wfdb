@@ -25,33 +25,34 @@ _______________________________________________________________________________
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 
-char *pname;	/* name by which this program was invoked */
-char *nrec;	/* name of record to be created */
-int flen;	/* filter length */
-int median;	/* offset of median element within vtemp array after sorting */
-int nsig;	/* number of signals to be filtered */
-int **vin;	/* pointers to input vectors */
-int *vtemp;	/* temporary array for calculating medians */
-int *vout;	/* output vector */
-WFDB_Time from = 0L; /* first sample to be processed */
-WFDB_Time to = 0L; /* (if > 0) sample following last sample to be processed */
-WFDB_Time spm;	/* samples per minute */
-WFDB_Time tt;	/* time to print next progress indicator */
+static char *pname;	/* name by which this program was invoked */
+static char *nrec;	/* name of record to be created */
+static int flen;	/* filter length */
+static int median;	/* offset of median element within vtemp array after sorting */
+static int nsig;	/* number of signals to be filtered */
+static int **vin;	/* pointers to input vectors */
+static int *vtemp;	/* temporary array for calculating medians */
+static int *vout;	/* output vector */
+static WFDB_Time from = 0L; /* first sample to be processed */
+static WFDB_Time to = 0L; /* (if > 0) sample following last sample to be processed */
+static WFDB_Time spm;	/* samples per minute */
+static WFDB_Time tt;	/* time to print next progress indicator */
 
-char *prog_name();
-void help(), init(), memerr();
+static char *prog_name(char *s);
+static void help(void);
+static void init(int argc, char *argv[]);
+static void memerr(void);
 
-int icmp(x, y)
-int *x, *y;
+int icmp(int *x, int *y)
 {
     return (*y - *x);
 }
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     int i = 0, j, s;
     WFDB_Time t;
@@ -71,7 +72,7 @@ char *argv[];
 	for (s = 0; s < nsig; s++) {
 	    for (j = 0; j < flen; j++)
 		vtemp[j] = vin[j][s];
-	    qsort((char *)vtemp, flen, sizeof(int), icmp);
+	    qsort((char *)vtemp, flen, sizeof(int), (int (*)(const void *, const void *))icmp);
 	    if (flen & 1)	/* odd length -- median is middle element */
 		vout[s] = vtemp[median];
 	    else    /* even length -- median is avg. of two middle elements */
@@ -92,12 +93,11 @@ char *argv[];
     (void)fprintf(stderr, "\n");
     if (nrec) (void)newheader(nrec);
     wfdbquit();
-    exit(0);	/*NOTREACHED*/
+    exit(0);
+    return 0;
 }
 
-void init(argc, argv)
-int argc;
-char *argv[];
+static void init(int argc, char *argv[])
 {
     char *irec = "16", *ofname, *orec = "16", *p;
     int format, i;
@@ -226,14 +226,13 @@ char *argv[];
     tt = from + spm;		/* time to print next progress indicator */
 }
 
-void memerr()
+static void memerr(void)
 {
     (void)fprintf(stderr, "%s: insufficient memory\n", pname);
     exit(2);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -252,7 +251,7 @@ char *s;
     return (p+1);
 }
 
-static char *help_strings[] = {
+static const char *help_strings[] = {
  "usage: %s -l N [OPTIONS ...]\n",
 "where N is the filter length (output is median of N samples in each signal),",
  "and OPTIONS may include:",
@@ -268,7 +267,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+void help(void)
 {
     int i;
 

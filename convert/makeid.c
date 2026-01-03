@@ -30,27 +30,24 @@ extern void exit();
 
 #include <wfdb/wfdb.h>
 
-void p16(x, fp)		/* write a 16-bit integer in PDP-11 format */
-unsigned int x;
-FILE *fp;
+static void p16(unsigned int x, FILE *fp);
+static void p32(long x, FILE *fp);
+
+static void p16(unsigned int x, FILE *fp)		/* write a 16-bit integer in PDP-11 format */
 {
     (void)fputc((char)x, fp);
     (void)fputc((char)(x >> 8), fp);
 }
 
-void p32(x, fp)		/* write a 32-bit integer in PDP-11 format */
-long x;
-FILE *fp;
+static void p32(long x, FILE *fp)		/* write a 32-bit integer in PDP-11 format */
 {
     p16((unsigned int)(x >> 16), fp);
     p16((unsigned int)x, fp);
 }
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    long ftell(), nsamp, first, last;
+    long nsamp, first, last;
     int blocks, len, nann;
     static char nulls[464];
     WFDB_Anninfo afarray[1];

@@ -4,6 +4,9 @@
 *.so.*
 *.orig
 *.rej
+*.exe
+*.dll
+*.dll.a.*
 Makefile
 
 config.cache
@@ -163,3 +166,9 @@ wave/wave
 
 waverc/wave-remote
 waverc/wavescript
+
+.vscode/
+
+*.qrs
+*.ps
+*.out

@@ -72,6 +72,9 @@ int sig = -1;	        /* signal number of signal to be analyzed (initial
 int Tm = TmDEF;		/* minimum threshold value */
 WFDB_Sample *lbuf = NULL;
 
+static char *prog_name(char *s);
+static void help(void);
+
 char *trim_whitespace(char *str)
 {
     size_t len = 0;
@@ -158,9 +161,8 @@ int main(int argc, char **argv)
     WFDB_Annotation annot;
     WFDB_Siginfo *s;
     WFDB_Time from = 0L, next_minute, spm, t, tpq, to = 0L, tt, t1;
-    char *p, *prog_name();
+    char *p;
     static int gvmode = 0;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -408,8 +410,7 @@ int main(int argc, char **argv)
     exit(0);
 }
 
-char *prog_name(s)
-char *s;
+char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -446,7 +447,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+void help(void)
 {
     int i;
 
@@ -454,4 +455,3 @@ void help()
     for (i = 1; help_strings[i] != NULL; i++)
 	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }
-

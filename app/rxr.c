@@ -58,12 +58,15 @@ WFDB_Time start, end_time, match_dt;
 int verbose;
 long s[2][7][7];
 
-main(argc, argv)
-int argc;
-char *argv[];
-{
-    void init(), print_results(), rxr();
+static void init(int argc, char *argv[]);
+static void print_results(int stat);
+static void rxr(int stat, int type);
+static int find_longest_run(unsigned int a, WFDB_Time t0, WFDB_Time t1, int type);
+static void help(void);
+static char *prog_name(char *s);
 
+int main(int argc, char *argv[])
+{
     /* Read and interpret command-line arguments. */
     init(argc, argv);
 
@@ -82,8 +85,7 @@ char *argv[];
 static WFDB_Time f_end;
 
 /* Perform a run-by-run comparison. */
-void rxr(stat, type)
-int stat, type;
+static void rxr(int stat, int type)
 {
     int i, j, goflag = 1;
     int run_length[2];
@@ -273,9 +275,7 @@ int stat, type;
 /* `pstat' prints a statistic described by s, defined as the quotient of a and
    b expressed in percentage units.  Undefined values are indicated by `-'. */
 
-void pstat(s, a, b)
-char *s;
-long a, b;
+static void pstat(char *s, long a, long b)
 {
     if (fflag != 2 && fflag != 5) {
 	(void)fprintf(ofile, "%s:", s);
@@ -298,9 +298,7 @@ long a, b;
 
 int inaf[2], invf[2], unreadable[2];	/* state variables for amap */
 
-int amap(annot, i)
-WFDB_Annotation annot;
-unsigned int i;
+int amap(WFDB_Annotation annot, unsigned int i)
 {
     switch (annot.anntyp) {
 	case NORMAL:
@@ -430,10 +428,7 @@ void initamap()		/* initialize state variables for amap() */
    consecutive (S)VEBs between t0 and t1.
 */
 
-find_longest_run(a, t0, t1, type)
-unsigned int a;
-WFDB_Time t0, t1;
-int type;	/* 0: find VE run; 1: find SVE run */
+static int find_longest_run(unsigned int a, WFDB_Time t0, WFDB_Time t1, int type)
 {
     int am, len = 0, len0 = 0;
 
@@ -561,13 +556,9 @@ int type;	/* 0: find VE run; 1: find SVE run */
 char *ofname = "-", *sfname;	/* filenames for reports */
 char *record;			/* record name */
 
-void init(argc, argv)
-int argc;
-char *argv[];
+static void init(int argc, char *argv[])
 {
     int i;
-    char *prog_name();
-    void help();
 
     pname = prog_name(argv[0]);
     for (i = 1; i < argc; i++) {
@@ -732,8 +723,7 @@ char *argv[];
     if (annopen(record, an, 2) < 0) exit(2);
 }
 
-void print_results(type)
-int type;	/* 0: VE; 1: SVE */
+static void print_results(int type)	/* 0: VE; 1: SVE */
 {
     int i;
     long CTPs, CFN, CTPp, CFP, STPs, SFN, STPp, SFP, LTPs, LFN, LTPp, LFP;
@@ -950,7 +940,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 
@@ -959,8 +949,7 @@ void help()
 	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

@@ -36,11 +36,8 @@ contributed by Peter P. Domitrovich.
 
 #include <stdio.h>
 #include <math.h>
-#ifndef __STDC__
-extern double atof();
-#else
 #include <stdlib.h>
-#endif
+#include <string.h>
 
 #ifndef BSD
 # include <string.h>
@@ -50,34 +47,50 @@ extern double atof();
 #endif
 
 #define PI	M_PI	/* pi to machine precision, defined in math.h */ 
+#define SQR(x) ((x)*(x))
 
-#ifdef i386
-#define strcasecmp strcmp
-#endif
-
-double wsum = 0.0;
-
-double (*window)(int j, long n);
-double win_bartlett(int j, long n);
-double win_blackman(int j, long n);
-double win_blackman_harris(int j, long n);
-double win_hamming(int j, long n);
-double win_hanning(int j, long n);
-double win_parzen(int j, long n);
-double win_square(int j, long n);
-double win_welch(int j, long n);
-char *prog_name(char *p);
-int detrend(double *ordinates, long n_ordinates);
-void error(char *error_message);
-void help(void);
-int memcof(double *data, long n, long m, double *pm, double *cof);
-double evlmem(double f, double *cof, long m, double pm);
-long input(void);
-double integ(double *cof, long poles, double pm, double lowfreq,
+/* Function prototypes */
+static double (*window)(int j, long n);
+static double win_bartlett(int j, long n);
+static double win_blackman(int j, long n);
+static double win_blackman_harris(int j, long n);
+static double win_hamming(int j, long n);
+static double win_hanning(int j, long n);
+static double win_parzen(int j, long n);
+static double win_square(int j, long n);
+static double win_welch(int j, long n);
+static char *prog_name(char *s);
+static int detrend(double *ordinates, long n_ordinates);
+static void error(char *error_message);
+static void help(void);
+static int memcof(double *data, long n, long m, double *pm, double *cof);
+static double evlmem(double f, double *cof, long m, double pm);
+static long input();
+static double integ(double *cof, long poles, double pm, double lowfreq,
 	     double highfreq, double tolerance);
+static void band_power(double f0, double f1);
+
+static double wsum = 0.0;
+static char *pname = NULL;
+static FILE *ifile = NULL;
+static double *data = NULL, *wk1 = NULL, *wk2 = NULL;
+static long nmax = 512L;	/* Initial buffer size (must be a power of 2).
+			   Note that input() will increase this value as
+			   necessary by repeated doubling, depending on
+			   the length of the input series. */
+static double pm = 0.0;
+static double *cof = NULL;
+static double *wkm = NULL;
+static int fflag = 0;
+static long len = 0;
+static long nout = 0;
+static long poles = 0;
+static int wflag = 0;
+static int zflag = 0;
+static double freq = 0.0;
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 241 (1st ed.) */
-double win_bartlett(int j, long n)
+static double win_bartlett(int j, long n)
 {
     double a = 2.0/(n-1), w = 0.0;
     if ((w = j*a) > 1.0) w = 2.0 - w;
@@ -86,7 +99,7 @@ double win_bartlett(int j, long n)
 }
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 242 (1st ed.) */
-double win_blackman(int j, long n)
+static double win_blackman(int j, long n)
 {
     double a = 2.0*PI/(n-1), w = 0.0;
 
@@ -97,7 +110,7 @@ double win_blackman(int j, long n)
 
 /* See Harris, F.J., "On the use of windows for harmonic analysis with the
    discrete Fourier transform", Proc. IEEE, Jan. 1978 */
-double win_blackman_harris(int j, long n)
+static double win_blackman_harris(int j, long n)
 {
     double a = 2.0*PI/(n-1), w = 0.0;
 
@@ -107,7 +120,7 @@ double win_blackman_harris(int j, long n)
 }
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 242 (1st ed.) */
-double win_hamming(int j, long n)
+static double win_hamming(int j, long n)
 {
     double a = 2.0*PI/(n-1), w = 0.0;
 
@@ -118,7 +131,7 @@ double win_hamming(int j, long n)
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 242 (1st ed.)
    The second edition of Numerical Recipes calls this the "Hann" window. */
-double win_hanning(int j, long n)
+static double win_hanning(int j, long n)
 {
     double a = 2.0*PI/(n-1), w = 0.0;
 
@@ -129,7 +142,7 @@ double win_hanning(int j, long n)
 
 /* See Press, Flannery, Teukolsky, & Vetterling, Numerical Recipes in C,
    p. 442 (1st ed.) */
-double win_parzen(int j, long n)
+static double win_parzen(int j, long n)
 {
     double a = (n-1)/2.0, w = 0.0;
 
@@ -140,7 +153,7 @@ double win_parzen(int j, long n)
 }
 
 /* See any of the above references. */
-double win_square(int j, long n)
+static double win_square(int j, long n)
 {
     if (j < n)		/* to quiet the compiler */
        wsum += 1.0;
@@ -149,7 +162,7 @@ double win_square(int j, long n)
 
 /* See Press, Flannery, Teukolsky, & Vetterling, Numerical Recipes in C,
    p. 442 (1st ed.) or p. 554 (2nd ed.) */
-double win_welch(int j, long n)
+static double win_welch(int j, long n)
 {
     double a = (n-1)/2.0, w = 0.0;
 
@@ -159,35 +172,17 @@ double win_welch(int j, long n)
     return (w);
 }
 
-char *pname = NULL;
-FILE *ifile = NULL;
-double *data = NULL, *wk1 = NULL, *wk2 = NULL;
-long nmax = 512L;	/* Initial buffer size (must be a power of 2).
-			   Note that input() will increase this value as
-			   necessary by repeated doubling, depending on
-			   the length of the input series. */
-double pm = 0.0;
-double *cof = NULL;
-double *wkm = NULL;
-int fflag = 0;
-long len = 0;
-long nout = 0;
-long poles = 0;
-int wflag = 0;
-int zflag = 0;
-double freq = 0.0;
-
+/* Calculate and print power in specified frequency band. */
 void band_power(double f0, double f1)
 {
-    double f;
     static int first_band = 1;
 
     if (f0 < 0.0) f0 = 0.0;
     if (f1 < 0.0) f1 = 0.0;
-    if (f0 > f1) { f = f0; f0 = f1; f1 = f; }
+    if (f0 > f1) { double f = f0; f0 = f1; f1 = f; }
     if (f0 == f1) return;
     if (first_band) {
-	printf("\nModel order = %ld\n", poles);
+	printf("\nModel order = %d\n", poles);
 	printf("     Band (Hz)\t\t  Power\n");
 	first_band = 0;
     }
@@ -195,7 +190,7 @@ void band_power(double f0, double f1)
 	   2 * integ(cof, poles, pm, f0, f1, 0.0000001));
 }
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
     int i = 0, pflag = 0, sflag = 0, fi, fi0 = -1, fi1 = -1;
     double df = 0.0;
@@ -425,7 +420,7 @@ int memcof(double *data, long n, long m, double *pm, double *cof)
 	    for (j = 0; j < n-k-2; j++) {
 		wk1[j] -= wkm[k]*wk2[j];
 		wk2[j] = wk2[j+1] - wkm[k]*wk1[j+1];
-	    }
+	}
 	}
     }
     return 0;
@@ -454,7 +449,7 @@ double evlmem(double f, double *cof, long m, double pm)
 
 /* This function detrends (subtracts a least-squares fitted line from)
    a sequence of n uniformly spaced ordinates supplied in c. */
-int detrend(double *c, long n)
+static int detrend(double *c, long n)
 {
     int i = 0;
     double a = 0.0, b = 0.0, tsqsum = 0.0, ysum = 0.0, t = 0.0;
@@ -477,7 +472,7 @@ int detrend(double *c, long n)
     return 0;
 }
 
-char *prog_name(char *s)
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -527,7 +522,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help(void)
+static void help(void)
 {
     int i;
 
@@ -539,18 +534,16 @@ void help(void)
 	    (void)fprintf(stderr, "--More--");
 	    (void)fgets(b, 5, stdin);
 	    (void)fprintf(stderr, "\033[A\033[2K"); /* erase "--More--";
-						       assumes ANSI terminal */
+						   assumes ANSI terminal */
 	}
     }
 }
-
-/* Read input data, allocating and filling x[] and y[].  The return value is
+/* Read input data, allocating and filling data[].  The return value is
    the number of points read.
 
    This function allows the input buffers to grow as large as necessary, up to
    the available memory (assuming that a long int is large enough to address
    any memory location). */
-
 long input( )
 {
     long npts = 0L;
@@ -608,7 +601,7 @@ long input( )
 /* Function 'integ' was contributed by Peter P. Domitrovich, who translated it
    from a FORTRAN version by an unknown author from a book written in Chinese.
    This code is designed to integrate functions with sharp peaks. */
-double integ(double *aa, long m, double ee, double a, double b, double epsilon)
+static double integ(double *aa, long m, double ee, double a, double b, double epsilon)
 {
   double f[3][31], fm[3][31], e[3][31], krtn[31];
   double sum = 0.0, t = 1.0, absa = 1.0, est = 1.0, f1 = 0.0, fa = 0.0,
@@ -691,4 +684,3 @@ double integ(double *aa, long m, double ee, double a, double b, double epsilon)
       krtn[l] = k;
   }
 }
-

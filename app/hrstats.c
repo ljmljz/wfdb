@@ -62,6 +62,8 @@ low and extreme high heart rates inclusive.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgmap.h>
@@ -73,13 +75,17 @@ low and extreme high heart rates inclusive.
 #define iexcl(A) (ix[(A)&(TBMAX-1)])	/* exclude interval A if non-zero */
 #define tbeat(A) (tb[(A)&(TBMAX-1)])	/* time of beat following interval A */
 
-char *irec, *aname, *ofname, *pname, *prog_name();
-int hrhist[HRMAX+1], ix[TBMAX], tot, wexcl;
-void cleanup(), help();
-WFDB_Anninfo ai;
-WFDB_Time tb[TBMAX], getbeat();
+static char *irec, *aname, *ofname, *pname;
+static int hrhist[HRMAX+1], ix[TBMAX], tot, wexcl;
+static WFDB_Anninfo ai;
+static WFDB_Time tb[TBMAX];
 
-main(int argc, char **argv)
+static char *prog_name(char *s);
+static void cleanup(void);
+static void help(void);
+static WFDB_Time getbeat(void);
+
+int main(int argc, char **argv)
 {
     double dt, left, right, rr, rrcnt, rrmin, rrmax, sps, t;
     int i, hr;
@@ -188,7 +194,7 @@ main(int argc, char **argv)
     }
 }
 
-WFDB_Time getbeat()
+static WFDB_Time getbeat()
 {
     int stat;
     WFDB_Annotation annot;
@@ -200,7 +206,7 @@ WFDB_Time getbeat()
     return (annot.time);
 }
 
-void cleanup()
+static void cleanup()
 {
     char hrbuf[100];
     double mean, sampdev, ssum, sum, target;
@@ -270,8 +276,7 @@ void cleanup()
     exit(0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -298,7 +303,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help()
 {
     int i;
 

@@ -25,6 +25,8 @@ _______________________________________________________________________________
 
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 
 #define WFDBXMLPROLOG  "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
@@ -33,7 +35,21 @@ _______________________________________________________________________________
  "<!DOCTYPE wfdbrecord PUBLIC \"-//PhysioNet//DTD WFDB 1.0//EN\"" \
  " \"http://physionet.org/physiobank/database/XML/wfdb.dtd\">\n"
 
-char *token(char *p)
+/* Function prototypes */
+static char *token(char *p);
+static void output_xml(FILE *ofile, char *tag, char *p);
+static int process_record(void);
+static void process_info(void);
+static void process_start(char *tstring);
+static char *prog_name(char *s);
+
+/* Global variables (minimized) */
+static int nsig;
+static FILE *ofile;
+static WFDB_Siginfo *s;
+static WFDB_Time t;
+
+static char *token(char *p)
 {
   if (p) {
     while (*p && *p != ' ' && *p != '\t' && *p != '\n')
@@ -45,7 +61,7 @@ char *token(char *p)
   return (p);
 }
 
-void output_xml(FILE *ofile, char *tag, char *p)
+static void output_xml(FILE *ofile, char *tag, char *p)
 {
   if (p) {
     fprintf(ofile, "<%s>", tag);
@@ -64,28 +80,21 @@ void output_xml(FILE *ofile, char *tag, char *p)
   return;
 }
 
-int nsig;
-FILE *ofile;
-WFDB_Siginfo *s;
-WFDB_Time t;
-
-void process_start(char *tstring);
-
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-    char *ofname, *info, *p, *pname, *record, *prog_name();
+    char *ofname, *info, *p, *pname, *record;
     int i, in_msrec = 0, nsegments;
     WFDB_Seginfo *seg, *sp;
 
-    pname = prog_name(argv[0]);
-    if (argc < 2) {
-      (void)fprintf(stderr, "usage: %s RECORD\n", pname);
-      exit(1);
-    }
-    record = argv[1];
+  pname = prog_name(argv[0]);
+  if (argc < 2) {
+    (void)fprintf(stderr, "usage: %s RECORD\n", pname);
+    exit(1);
+  }
+  record = argv[1];
 
-    /* Discover the number of signals defined in the header. */
-    if ((nsig = isigopen(record, NULL, 0)) < 0) exit(2);
+  /* Discover the number of signals defined in the header. */
+  if ((nsig = isigopen(record, NULL, 0)) < 0) exit(2);
 
     /* The name of the output file is the record name with an
        appended ".hea.xml".  Any directory separators (/) in
@@ -94,16 +103,16 @@ main(int argc, char **argv)
        written into the current directory. */
     ofname = calloc(strlen(record)+9, sizeof(char));
     strcpy(ofname, record);
-    for (p = ofname; *p; p++)
-      if (*p == '/') *p = '-';
+  for (p = ofname; *p; p++)
+    if (*p == '/') *p = '-';
     strcat(ofname, ".hea.xml");
 
-    /* Open the output file and write the XML prolog. */
-    if ((ofile = fopen(ofname, "wt")) == NULL) {
-      fprintf(stderr, "%s: can't create %s\n", pname, ofname);
+  /* Open the output file and write the XML prolog. */
+  if ((ofile = fopen(ofname, "wt")) == NULL) {
+    fprintf(stderr, "%s: can't create %s\n", pname, ofname);
       exit(3);
-    }
-    fprintf(ofile, WFDBXMLPROLOG);
+  }
+  fprintf(ofile, WFDBXMLPROLOG);
 
     /* Allocate storage for nsig signal information structures. */
     if (nsig > 0 && (s = malloc(nsig * sizeof(WFDB_Siginfo))) == NULL) {
@@ -147,7 +156,7 @@ main(int argc, char **argv)
 	}
 	else {
 	  sprintf(segname, "%s/%s", record, sp[i].recname);
-	  wfdbquit();
+  wfdbquit();
 	  nsig = isigopen(segname, NULL, 0);
 	  nsig = isigopen(segname, s, -nsig);
 	  fprintf(ofile, "\n<segment name=\"%s\">\n", sp[i].recname);
@@ -160,10 +169,10 @@ main(int argc, char **argv)
       }
     }
     fprintf(ofile, "</wfdbrecord>\n");
-    exit(0);
+  exit(0);
 }
 
-void process_info(void)
+static void process_info(void)
 {
     char *info, *p;
 
@@ -259,36 +268,36 @@ void process_info(void)
     }
 }
 
-void process_start(char *p)
+static void process_start(char *p)
 {
-    if (*p == '[') {
-      int day = -1, month = -1, year = -1;
-      double hour = -1.0, minute = -1.0, second = -1.0;
+  if (*p == '[') {
+    int day = -1, month = -1, year = -1;
+    double hour = -1.0, minute = -1.0, second = -1.0;
 
-      fprintf(ofile, "<start>\n");
-      sscanf(p+1, "%lf:%lf:%lf %d/%d/%d",
-	     &hour, &minute, &second, &day, &month, &year);
-      if (year >= 0) {
-	if (year < 100) year += 1900;
-	if (year < 1975) year += 100;
-	fprintf(ofile, "<year>%d</year>\n", year);
-      }
-      if (month > 0) fprintf(ofile, "<month>%d</month>\n", month);
-      if (day > 0) fprintf(ofile, "<day>%d</day>\n", day);
-
-      if (second < 0) { /* incomplete start time in MM:SS or SS format */
-	if (minute < 0) { second = hour; hour = -1; } /* SS format */
-	else { second = minute; minute = hour; hour = -1; } /* MM:SS */
-      }
-
-      if (hour >= 0) fprintf(ofile, "<hour>%g</hour>\n", hour);
-      if (minute >= 0) fprintf(ofile, "<minute>%g</minute>\n", minute);
-      if (second >= 0) fprintf(ofile, "<second>%g</second>\n", second);
-      fprintf(ofile, "</start>\n");
+    fprintf(ofile, "<start>\n");
+    sscanf(p+1, "%lf:%lf:%lf %d/%d/%d",
+	   &hour, &minute, &second, &day, &month, &year);
+    if (year >= 0) {
+      if (year < 100) year += 1900;
+      if (year < 1975) year += 100;
+      fprintf(ofile, "<year>%d</year>\n", year);
     }
+    if (month > 0) fprintf(ofile, "<month>%d</month>\n", month);
+    if (day > 0) fprintf(ofile, "<day>%d</day>\n", day);
+
+    if (second < 0) { /* incomplete start time in MM:SS or SS format */
+      if (minute < 0) { second = hour; hour = -1; } /* SS format */
+      else { second = minute; minute = hour; hour = -1; } /* MM:SS */
+    }
+
+    if (hour >= 0) fprintf(ofile, "<hour>%g</hour>\n", hour);
+    if (minute >= 0) fprintf(ofile, "<minute>%g</minute>\n", minute);
+    if (second >= 0) fprintf(ofile, "<second>%g</second>\n", second);
+    fprintf(ofile, "</start>\n");
+  }
 }
 
-int process_record(void)
+static int process_record(void)
 {
     char *p;
     double cfreq, sfreq;
@@ -388,22 +397,21 @@ int process_record(void)
     return (0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
-    char *p = s + strlen(s);
+  char *p = s + strlen(s);
 
 #ifdef MSDOS
-    while (p >= s && *p != '\\' && *p != ':') {
-	if (*p == '.')
-	    *p = '\0';		/* strip off extension */
-	if ('A' <= *p && *p <= 'Z')
-	    *p += 'a' - 'A';	/* convert to lower case */
-	p--;
-    }
+  while (p >= s && *p != '\\' && *p != ':') {
+    if (*p == '.')
+      *p = '\0';		/* strip off extension */
+    if ('A' <= *p && *p <= 'Z')
+      *p += 'a' - 'A';	/* convert to lower case */
+    p--;
+  }
 #else
-    while (p >= s && *p != '/')
-	p--;
+  while (p >= s && *p != '/')
+    p--;
 #endif
-    return (p+1);
+  return (p+1);
 }

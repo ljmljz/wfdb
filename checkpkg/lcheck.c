@@ -26,23 +26,23 @@ _______________________________________________________________________________
 #include <stdio.h>
 #include <wfdb/wfdb.h>
 
-char *info, *pname, *prog_name();
-int n, nsig, i, j, framelen, errors = 0, istat, vflag = 0;
-char headerversion[40];
-char *libversion;
-char *p, *q, *defpath, *dbpath;
-WFDB_Anninfo aiarray[2];
-WFDB_Annotation annot;
-WFDB_Calinfo cal;
-WFDB_Siginfo *si;
-WFDB_Sample *vector;
-void help(), list_untested();
-void check_annotations(char *record);
-void check_signals(char *record, char *orec, int fmt, int split_info);
+static char *info, *pname;
+static int n, nsig, i, j, framelen, errors = 0, istat, vflag = 0;
+static char headerversion[40];
+static char *libversion;
+static char *p, *q, *defpath, *dbpath;
+static WFDB_Anninfo aiarray[2];
+static WFDB_Annotation annot;
+static WFDB_Calinfo cal;
+static WFDB_Siginfo *si;
+static WFDB_Sample *vector;
+static void help(void);
+static void list_untested(void);
+static void check_annotations(char *record);
+static void check_signals(char *record, char *orec, int fmt, int split_info);
+static char *prog_name(char *s);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
 
   pname = prog_name(argv[0]);
@@ -245,7 +245,7 @@ char *argv[];
   exit(errors);
 }
 
-void check_annotations(char *record)
+static void check_annotations(char *record)
 {
   WFDB_Date d;
   WFDB_Frequency f;
@@ -467,7 +467,7 @@ void check_annotations(char *record)
     printf("[OK]:  %d annotations read, %d written\n", i, j);
 }
 
-void check_signals(char *record, char *orec, int ofmt, int split_info)
+static void check_signals(char *record, char *orec, int ofmt, int split_info)
 {
   WFDB_Frequency f;
   WFDB_Time t, tt;
@@ -719,8 +719,7 @@ void check_signals(char *record, char *orec, int ofmt, int split_info)
   setanndesc(-1, "Normal beat");
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -746,7 +745,7 @@ static char *help_strings[] = {
  NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 
@@ -755,7 +754,7 @@ void help()
 	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }
 
-void list_untested()
+static void list_untested(void)
 {
     printf(
    "This program does not (yet) test the following WFDB library functions:\n");

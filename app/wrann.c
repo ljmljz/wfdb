@@ -32,19 +32,19 @@ extern void exit();
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgcodes.h>
 
-char *pname;
+static char *pname;
 
-main(argc, argv)	
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char *argv[])
 {
     static WFDB_Anninfo ai;
     WFDB_Annotation annot;
     static char line[400];
-    char annstr[10], *p, *record = NULL, *prog_name();
+    char annstr[10], *p, *record = NULL;
     int i, sub, ch, nm;
     WFDB_Time tm;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -144,8 +144,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -164,7 +163,7 @@ char *s;
     return (p+1);
 }
 
-void help()
+static void help(void)
 {
     (void)fprintf(stderr, "usage: %s -r RECORD -a ANNOTATOR <TEXT-FILE\n",
 		  pname);

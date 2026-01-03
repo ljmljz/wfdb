@@ -35,13 +35,16 @@ Define and handle new annotation dur and url items.  */
 #include <wfdb/wfdb.h>
 #include "xmlproc.h"	/* provides main(), process(), DATALEN, qflag, vflag */
 
-char *content;
-int depth, plen, output_not_open;
-
-WFDB_Anninfo ai;
-WFDB_Annotation a;
-char *record, *rec;
-double sps;
+/* Global variables (minimized) */
+static char *content;
+static int depth;
+static int plen;
+static int output_not_open;
+static WFDB_Anninfo ai;
+static WFDB_Annotation a;
+static char *record;
+static char *rec;
+static double sps;
 
 void XMLCALL start(void *data, const char *el, const char **attr)
 {
@@ -59,18 +62,18 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if (depth) {
 	  fprintf(stderr, "Malformed input: wfdbannotationset not at root\n");
 	  //	  exit(1);
-      }
+    }
       for (i = 0; attr[i]; i += 2) {
 	  if (attr[i] && strcmp("annotator", attr[i]) == 0)
 	      SSTRCPY(ai.name, attr[i+1]);
 	  if (attr[i] && strcmp("record", attr[i]) == 0)
 	      SSTRCPY(record, attr[i+1]);
-      }
+  }
       if (ai.name == NULL || record == NULL) {
 	  fprintf(stderr, "Malformed input: wfdbannotationset is missing a"
 		  " required annotator or record attribute\n");
 	  //	  exit(1);
-      }
+  }
       for (rec = record + strlen(record); rec > record; rec--)
 	  if (*rec == '/') { rec++; break; }
       output_not_open = 1;
@@ -90,10 +93,10 @@ void XMLCALL middle(void *data, const char *el, int len)
 	SREALLOC(content, plen + len, sizeof(char));
 	strncpy(content + plen - 1, el, len);
 	plen += len;
-    }
+  }
     if (vflag) { printf("\t|%s|", content); fflush(stdout); }
 }
- 
+
 void XMLCALL end(void *data, const char *el)
 {
   char *p;
@@ -113,7 +116,7 @@ void XMLCALL end(void *data, const char *el)
       else {
 	  fprintf(stderr, "No wfdbannotationset in input\n");
 	  //	  exit(1);
-      }
+    }
   }
   else if (strcmp("samplingfrequency", el) == 0)
       sscanf(content, "%lf", &sps);
@@ -163,7 +166,7 @@ void XMLCALL end(void *data, const char *el)
   if (vflag) { printf("."); fflush(stdout); }
 }
 
-void cleanup()
+void cleanup(void)
 {
     content = NULL;
     depth = plen = output_not_open = 0;
@@ -173,7 +176,7 @@ void cleanup()
     sps = 0;
 }
 
-void help()
+void help(void)
 {
     fprintf(stderr, "usage: %s [ OPTION ...] [ FILE ... ]\n", pname);
     fprintf(stderr, " OPTIONs may include:\n"

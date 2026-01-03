@@ -35,19 +35,22 @@ extern void exit();
 #define annpos
 #include <wfdb/ecgmap.h>
 
+#ifdef WFDB_Pd_TIME
+#undef WFDB_Pd_TIME
+#define WFDB_Pd_TIME "lld"
+#endif
+
 char *pname;
 
-main(argc, argv)	
-int argc;
-char *argv[];
+int main(int argc, char *argv[])	
 {
-    char *record = NULL, rrfstr[16], t0fstr[16], t1fstr[16], *prog_name();
+    char *record = NULL, rrfstr[16], t0fstr[16], t1fstr[16], *prog_name(char *);
     double sps, spm, sph;
     int Aflag = 0, a0, a0flag = 0, a1, a1flag = 0,
 	cflag = 0, i,  j, pflag = 0, previous_annot_valid = 0, rrdigits = 3,
 	rrformat = 0, t0digits = 3, t0flag = 0, t0format = 0, t1digits = 3,
 	t1flag = 0, t1format = 0;
-    long atol();
+    // long atol();
     static char a0f[ACMAX+1], a1f[ACMAX+1];
     static WFDB_Anninfo ai;
     static WFDB_Annotation annot;
@@ -307,8 +310,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

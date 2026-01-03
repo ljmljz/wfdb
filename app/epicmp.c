@@ -40,6 +40,8 @@ understanding of algorithm errors.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 #define map1
 #define map2
@@ -60,13 +62,11 @@ understanding of algorithm errors.
 			   comparison */
 
 int aflag, sflag, s0flag, s1flag, vflag, xflag;
-char *lzmstimstr(), *zmstimstr();
+char *lzmstimstr(WFDB_Time), *zmstimstr(WFDB_Time);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    void epicmp(), init(), print_results(), stdc();
+    void epicmp(unsigned int, unsigned int), init(int, char **), print_results(int), stdc(int);
 
     /* Read and interpret command-line arguments. */
     init(argc, argv);
@@ -105,27 +105,27 @@ char *argv[];
     }
 
     exit(0);	/*NOTREACHED*/
+    return 0;
 }
 
-char *pname;		/* name by which this program was invoked */
-char *record;
-char *afname, *sfname, *s0fname, *s1fname, *vfname;
-int Iflag, match, mismatch, nexcl, overlap_ex0, overlap_ex1;
-WFDB_Time start_time, end_time, min_length, total_duration, total_overlap;
-WFDB_Time ep_start[2], ep_ex0[2], ep_ex1[2], ep_end[2];
-WFDB_Time ex_start[MAXEXCL], ex_end[MAXEXCL];
-WFDB_Time ref_duration, ref_overlap, test_duration, test_overlap;
-long STP, FN, PTP, FP;
-WFDB_Anninfo an[2];
+static char *pname;		/* name by which this program was invoked */
+static char *record;
+static char *afname, *sfname, *s0fname, *s1fname, *vfname;
+static int Iflag, match, mismatch, nexcl, overlap_ex0, overlap_ex1;
+static WFDB_Time start_time, end_time, min_length, total_duration, total_overlap;
+static WFDB_Time ep_start[2], ep_ex0[2], ep_ex1[2], ep_end[2];
+static WFDB_Time ex_start[MAXEXCL], ex_end[MAXEXCL];
+static WFDB_Time ref_duration, ref_overlap, test_duration, test_overlap;
+static long STP, FN, PTP, FP;
+static WFDB_Anninfo an[2];
 
 /* Perform an episode-by-episode comparison. */
-void epicmp(stat, type)
-unsigned int stat, type;
+void epicmp(unsigned int stat, unsigned int type)
 {
     int i;
     unsigned int a, b;
-    WFDB_Time duration, overlap, find_overlap();
-    void find_episode(), find_exclusions();
+    WFDB_Time duration, overlap, find_overlap(unsigned int, unsigned int);
+    void find_episode(unsigned int, unsigned int), find_exclusions(unsigned int, unsigned int);
 
     /* Find and mark any intervals to be excluded from the comparison. */
     if (xflag)
@@ -284,11 +284,9 @@ unsigned int stat, type;
     }
 }
 
-int lflag;
-WFDB_Time min_length;
+static int lflag;
 
-void find_episode(annotator, type)
-unsigned int annotator, type;
+void find_episode(unsigned int annotator, unsigned int type)
 {
     int stat, stcount = 0;
     WFDB_Time tt;
@@ -412,8 +410,7 @@ unsigned int annotator, type;
    positive predictivity comparisons, from which intervals of reference-marked
    atrial flutter are excluded. */
 
-void find_exclusions(stat, type)
-unsigned int stat, type;
+void find_exclusions(unsigned int stat, unsigned int type)
 {
     nexcl = 0;
     if (stat == 1 && type == AFE) {
@@ -452,8 +449,7 @@ unsigned int stat, type;
    overlap_ex0 and overlap_ex1 if the period of overlap includes the times
    ep_ex0[1-annotator] and ep_ex1[1-annotator]. */
 
-WFDB_Time find_overlap(annotator, type)
-unsigned int annotator, type;
+WFDB_Time find_overlap(unsigned int annotator, unsigned int type)
 {
     WFDB_Time overlap = 0L, o_start, o_end;
 
@@ -530,8 +526,7 @@ int sigref, stref;	/* signal number and ST deviation for the most recent
 /* This function finds the next reference ST extremum annotation and sets the
    variables tref, sigref, and stref appropriately. */
 
-int find_reference_extremum(mode)
-int mode;	/* 0: signal 0 only, 1: signal 1 only, 2: both signals */
+int find_reference_extremum(int mode) /* 0: signal 0 only, 1: signal 1 only, 2: both signals */
 {
     WFDB_Annotation refann;
 
@@ -577,8 +572,7 @@ char *sd0fname, *sd1fname, *sdfname;
    measurement that is nearest in time to each reference measurement.
    Each pair of measurements is recorded in the output file. */
 
-void stdc(mode)
-int mode;	/* 0: signal 0 only, 1: signal 1 only, 2: both signals */
+void stdc(int mode) /* 0: signal 0 only, 1: signal 1 only, 2: both signals */
 {
     char *ofname;
     WFDB_Annotation testann;
@@ -653,9 +647,7 @@ int mode;	/* 0: signal 0 only, 1: signal 1 only, 2: both signals */
 /* `pstat' prints a statistic described by s, defined as the quotient of a and
    b expressed in percentage units.  Undefined values are indicated by `-'. */
 
-void pstat(s, a, b)
-char *s;
-long a, b;
+void pstat(char *s, long a, long b)
 {
     if (!lflag) {
 	(void)fprintf(ofile, "%s:", s);
@@ -671,9 +663,7 @@ long a, b;
 /* `tstat' prints a statistic as above, but prints the numerator and
    denominator as times. */
 
-void tstat(s, a, b)
-char *s;
-WFDB_Time a, b;
+void tstat(char *s, WFDB_Time a, WFDB_Time b)
 {
     if (!lflag) {
 	(void)fprintf(ofile, "%s:", s);
@@ -686,8 +676,7 @@ WFDB_Time a, b;
     else (void)fprintf(ofile, " %3d", (int)((100.*a)/b + 0.5));
 }
 
-char *lzmstimstr(t)
-WFDB_Time t;
+char *lzmstimstr(WFDB_Time t)
 {
     char *p = zmstimstr(t);
 
@@ -696,14 +685,12 @@ WFDB_Time t;
     return (p);
 }
 
-char *zmstimstr(t)
-WFDB_Time t;
+char *zmstimstr(WFDB_Time t)
 {
     return (t ? mstimstr(t) : "       0.000");
 }
 
-void print_results(type)
-int type;
+void print_results(int type)
 {
     char *ofname;
 
@@ -812,12 +799,10 @@ int type;
 	(void)fclose(ofile);
 }
 
-void init(argc, argv)
-int argc;
-char *argv[];
+void init(int argc, char *argv[])
 {
     int i;
-    char *prog_name();
+    char *prog_name(char *);
     void help();
 
     pname = prog_name(argv[0]);
@@ -1019,8 +1004,7 @@ void help()
 	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }
 
-char *prog_name(s)
-char *s;
+char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

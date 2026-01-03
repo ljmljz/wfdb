@@ -37,9 +37,7 @@ an archived version (available on PhysioNet).
 
 char buf[256];
 
-void getans(p, n)
-char *p;
-int n;
+void getans(char *p, int n)
 {
     int l;
 
@@ -57,7 +55,7 @@ int ndb;
 
 int getdblists()
 {
-    char *p, *sep = "\t\n\r", *getenv();
+    char *p, *sep = "\t\n\r";
     FILE *dblfile;
 
     if ((dblname = getenv("DBLIST")) == NULL)
@@ -126,11 +124,11 @@ main()
     static char *rname = "atr";
 
 #ifdef __STDC__
-    time_t t, time();
+    time_t t;
 
     t = time((time_t *)NULL);    /* get current time from system clock */
 #else
-    long t, time();
+    long t;
 
     t = time((long *)NULL);
 #endif

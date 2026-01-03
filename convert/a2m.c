@@ -1,4 +1,4 @@
-/* file: a2m.c		G. Moody        9 June 1983
+/* file: a2m.c		G. Moody	9 June 1983
 			Last revised:  27 July 2010
 
 -------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ This program converts four types of AHA format annotation files to MIT format:
 	programs that use AHA_WRITE mode and `putann' (the `m2a'
 	translator is an example of such a program).  Time is
 	measured in sample intervals from the beginning of the record,
-	and MIT annotation codes are included and read into the `chan'
+and MIT annotation codes are included and read into the `chan'
 	field of the annotation by `getann';  if such codes are
 	present (i.e., if `chan' is non-zero), the AHA code is
 	ignored.
@@ -52,6 +52,8 @@ This program converts four types of AHA format annotation files to MIT format:
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef __STDC__
 #define RB	"rb"
 #else
@@ -71,19 +73,19 @@ extern void exit();
 #define annpos
 #include <wfdb/ecgmap.h>
 
-char *pname;
+static char *prog_name(const char *s);
+static void help(void);
+static int getcann(WFDB_Annotation *ap);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char *ifname = NULL, *oann = "atr", *p, *record = NULL, *prog_name();
-    int i, type = -1, getcann();
+    char *ifname = NULL, *oann = "atr", *p, *record = NULL;
+    int i, type = -1;
     long offset = 0L;
     unsigned int nann = 2;
     WFDB_Anninfo afarray[2];
     static WFDB_Annotation annot;
-    void help();
+    const char *pname;
 
     /* Read and interpret command-line arguments. */
     pname = prog_name(argv[0]);
@@ -156,7 +158,7 @@ char *argv[];
 	help();
 	exit(1);
     }
-		 
+	 
     /* Attach the input file to the standard input. */
     if (strcmp(ifname, "-") != 0 && freopen(ifname, RB, stdin) == NULL) {
 	(void)fprintf(stderr, "%s: can't read input file `%s'\n", pname,
@@ -246,8 +248,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-int getcann(ap)
-WFDB_Annotation *ap;
+static int getcann(WFDB_Annotation *ap)
 {
     char buf[6];
     long h, m, l;
@@ -284,28 +285,27 @@ WFDB_Annotation *ap;
     m = (long)buf[2] & 0xff;
     l = (long)buf[3] & 0xff;
     ap->time = (h << 16) | (m << 8) | l; /* time in milliseconds from the
-					   start of the annotated segment */
+						   start of the annotated segment */
     return (0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(const char *s)
 {
-    char *p = s + strlen(s);
+    const char *p = s + strlen(s);
 
 #ifdef MSDOS
     while (p >= s && *p != '\\' && *p != ':') {
 	if (*p == '.')
-	    *p = '\0';		/* strip off extension */
+	    *(char *)p = '\0';		/* strip off extension */
 	if ('A' <= *p && *p <= 'Z')
-	    *p += 'a' - 'A';	/* convert to lower case */
+	    *(char *)p += 'a' - 'A';	/* convert to lower case */
 	p--;
     }
 #else
     while (p >= s && *p != '/')
 	p--;
 #endif
-    return (p+1);
+    return (char *)(p+1);
 }
 
 static char *help_strings[] = {
@@ -329,9 +329,10 @@ static char *help_strings[] = {
   NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
+    const char *pname = prog_name("a2m");
 
     (void)fprintf(stderr, help_strings[0], pname);
     for (i = 1; help_strings[i] != NULL; i++)

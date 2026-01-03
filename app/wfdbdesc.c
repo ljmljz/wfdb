@@ -30,11 +30,11 @@ Guide.
 #include <stdio.h>
 #include <wfdb/wfdb.h>
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+
+int main(int argc, char *argv[])
 {
-    char *info, *p, *pname, *prog_name();
+    char *info, *p, *pname;
     int i, msrec = 0, nsig;
     FILE *ifile;
     WFDB_Siginfo *s;
@@ -169,8 +169,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

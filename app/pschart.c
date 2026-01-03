@@ -75,121 +75,139 @@ will be correct even if `dpi' is incorrect, however.
 #define PTYPE	 "letter"	/* default page type */
 #endif
 
-char *month[12] = { "January", "February", "March", "April", "May",
+static char *month[12] = { "January", "February", "March", "April", "May",
      "June", "July", "August", "September", "October", "November", "December"};
 
-char *ptype = PTYPE;		/* page type */
-double p_height;		/* page height (mm) */
-double p_width;			/* page width (mm) */
-double s_defwidth;		/* default strip width (mm) */
-double tmargin;			/* top margin (mm) */
-double bmargin;			/* bottom margin (mm) */
-double lmargin;			/* left margin (mm) */
-double rmargin;			/* right margin (mm) */
-double title_y;			/* distance from page bottom to title (mm) */
-double footer_y;		/* distance from page bottom to footer (mm) */
-double imargin;			/* inside margin (mm) */
-double omargin;			/* outside margin (mm) */
-FILE *infofile;			/* file to print instead of title */
-
+static char *ptype = PTYPE;		/* page type */
+static double p_height;		/* page height (mm) */
+static double p_width;			/* page width (mm) */
+static double s_defwidth;		/* default strip width (mm) */
+static double tmargin;			/* top margin (mm) */
+static double bmargin;			/* bottom margin (mm) */
+static double lmargin;			/* left margin (mm) */
+static double rmargin;			/* right margin (mm) */
+static double title_y;			/* distance from page bottom to title (mm) */
+static double footer_y;		/* distance from page bottom to footer (mm) */
+static double imargin;			/* inside margin (mm) */
+static double omargin;			/* outside margin (mm) */
+static FILE *infofile;			/* file to print instead of title */
 /* User-settable parameters */
-char aname[41] = "atr";		/* annotator name */
-char aname2[41] = "";		/* second annotator name */
-int aux_shorten = 0;		/* if non-zero, print first char of aux only */
-double boff = 0.;		/* binding offset (mm) */
-char *copyright;		/* copyright notice string */
-char *defpagetitle;		/* default page title */
-char *footer = NULL;		/* footer string */
-char *rdpagetitle;		/* page title based on recording date */
-double dpi = DPI;		/* pixels per inch */
-int Cflag = 0;			/* if non-zero, produce color output */
-int eflag = 0;			/* if non-zero, do even/odd page handling */
-int Eflag = 0;			/* generate EPSF */
-int gflag = 0;			/* if non-zero, plot grid */
-int Gflag = 0;			/* if non-zero, plot alternate grid */
-int lflag = 0;			/* if non-zero, label signals */
-int Lflag = 0;			/* if non-zero, use landscape orientation */
-double lwmm = LWMM;		/* line width (mm); 0 is narrowest possible */
-int mflag = 0;			/* if non-zero, margins specified using -m */
-int Mflag = 0;			/* annotation/marker bar mode (0: do not print
+static char aname[41] = "atr";		/* annotator name */
+static char aname2[41] = "";		/* second annotator name */
+static int aux_shorten = 0;		/* if non-zero, print first char of aux only */
+static double boff = 0.;		/* binding offset (mm) */
+static char *copyright;		/* copyright notice string */
+static char *defpagetitle;		/* default page title */
+static char *footer = NULL;		/* footer string */
+static char *rdpagetitle;		/* page title based on recording date */
+static double dpi = DPI;		/* pixels per inch */
+static int Cflag = 0;			/* if non-zero, produce color output */
+static int eflag = 0;			/* if non-zero, do even/odd page handling */
+static int Eflag = 0;			/* generate EPSF */
+static int gflag = 0;			/* if non-zero, plot grid */
+static int Gflag = 0;			/* if non-zero, plot alternate grid */
+static int lflag = 0;			/* if non-zero, label signals */
+static int Lflag = 0;			/* if non-zero, use landscape orientation */
+static double lwmm = LWMM;		/* line width (mm); 0 is narrowest possible */
+static int mflag = 0;			/* if non-zero, margins specified using -m */
+static int Mflag = 0;			/* annotation/marker bar mode (0: do not print
 				   bars, print mnemonics at center; 1: print
 				   bars across all signals, mnemonics at
 				   center; 2: print bars across attached
 				   signal, mnemonics at center; 3: print bars
 				   across attached signal, mnemonics above
 				   bars */
-int numberpages = 1;		/* if zero, suppress page numbering */
-int nosig = 0;			/* number of signals to be printed */
-int nomax = 0;			/* largest value for nosig seen so far */
-int page = 1;			/* logical page number */
-int pages_written = 0;		/* number of pages written already */
-int prolog_written = 0;		/* if non-zero, prolog has been written */
-char *pagetitle = NULL;		/* if not null, title for page header */
-char *pname;			/* the name by which this program is invoked */
-int pflag = 0;			/* if non-zero, pack strips side-by-side */
-int rflag = 0;			/* if non-zero, print record names */
-int Rflag = 0;			/* if non-zero, print record name in header */
-int sflag = 0;			/* if non-zero, a signal list was specified */
-int *siglist;			/* list of signals to be printed */
-int smode = 1;			/* scale mode (0: no scales; 1: mm/unit in
+static int numberpages = 1;		/* if zero, suppress page numbering */
+static int nosig = 0;			/* number of signals to be printed */
+static int nomax = 0;			/* largest value for nosig seen so far */
+static int page = 1;			/* logical page number */
+static int pages_written = 0;		/* number of pages written already */
+static int prolog_written = 0;		/* if non-zero, prolog has been written */
+static char *pagetitle = NULL;		/* if not null, title for page header */
+static char *pname;			/* the name by which this program is invoked */
+static int pflag = 0;			/* if non-zero, pack strips side-by-side */
+static int rflag = 0;			/* if non-zero, print record names */
+static int Rflag = 0;			/* if non-zero, print record name in header */
+static int sflag = 0;			/* if non-zero, a signal list was specified */
+static int *siglist;			/* list of signals to be printed */
+static int smode = 1;			/* scale mode (0: no scales; 1: mm/unit in
 				   footers; 2: units/tick in footers; 3:
 				   mm/unit above strips; 4: units/tick above
 				   strips; 5: mm/unit within strips; 6: units/
 				   tick within strips) */
-char **snstr;			/* signal names (if provided on command line) */
-char *sqstr;			/* signal quality string (1 char/signal) */
-double tpmv = TPMV;		/* grid ticks per millivolt */
-double tps = TPS;		/* grid ticks per second */
-double tscale = TSCALE;		/* time scale (mm/second) */
-int tsmode = 2;			/* time stamp mode (0: no time stamps; 1:
+static char **snstr;			/* signal names (if provided on command line) */
+static char *sqstr;			/* signal quality string (1 char/signal) */
+static double tpmv = TPMV;		/* grid ticks per millivolt */
+static double tps = TPS;		/* grid ticks per second */
+static double tscale = TSCALE;		/* time scale (mm/second) */
+static int tsmode = 2;			/* time stamp mode (0: no time stamps; 1:
 				   elapsed times only; 2: absolute times if
 				   defined, elapsed times otherwise) */
-int uflag = 0;			/* if non-zero, insert an extra `%!' at the
+static int uflag = 0;			/* if non-zero, insert an extra `%!' at the
 				   beginning of the output to work around a
 				   bug in the Adobe TranScript package */
-int vflag = 0;			/* if non-zero, echo commands */
-double vscale = VSCALE;		/* voltage scale (mm/millivolt) */
-int xflag = 0;                  /* if non-zero, plot only in (xvmin, xvmax) */
-int xvmax;			/* high end of range if xflag set */
-int xvmin;			/* low end of range if xflag set */
+static int vflag = 0;			/* if non-zero, echo commands */
+static double vscale = VSCALE;		/* voltage scale (mm/millivolt) */
+static int xflag = 0;                  /* if non-zero, plot only in (xvmin, xvmax) */
+static int xvmax;			/* high end of range if xflag set */
+static int xvmin;			/* low end of range if xflag set */
 
-double h_sep = H_SEP;		/* horizontal space between strips (mm) */
-double l_sep = L_SEP;		/* distance from labels to sides of grid */
-double t_sep = T_SEP;		/* distance from bottom of title to top of
+static double h_sep = H_SEP;		/* horizontal space between strips (mm) */
+static double l_sep = L_SEP;		/* distance from labels to sides of grid */
+static double t_sep = T_SEP;		/* distance from bottom of title to top of
 				   grid (mm) */
-double v_sep = V_SEP;		/* vertical space between strips (mm) */
-double fs_ann = FS_ANN;		/* font size (in PostScript points) for
+static double v_sep = V_SEP;		/* vertical space between strips (mm) */
+static double fs_ann = FS_ANN;		/* font size (in PostScript points) for
 				   annotations */
-double fs_label = FS_LABEL;	/* font size for labels */
-double fs_title = FS_TITLE;	/* font size for titles */
+static double fs_label = FS_LABEL;	/* font size for labels */
+static double fs_title = FS_TITLE;	/* font size for titles */
 
 /* Color definitions. */
 struct pscolor {
     float red, green, blue;
 };
-struct pscolor ac = { 0.0, 0.0, 1.0 };	/* annotations: blue */
-struct pscolor gc = { 1.0, 0.5, 0.5 };	/* grid: light red */
-struct pscolor Gc = { 0.2, 0.2, 0.2 };	/* alternate grid: dark grey */
-struct pscolor lc = { 0.0, 0.0, 0.0 };	/* labels: black */
-struct pscolor sc = { 0.0, 0.0, 0.3 };	/* signals: dark blue */
+static struct pscolor ac = { 0.0, 0.0, 1.0 };	/* annotations: blue */
+static struct pscolor gc = { 1.0, 0.5, 0.5 };	/* grid: light red */
+static struct pscolor Gc = { 0.2, 0.2, 0.2 };	/* alternate grid: dark grey */
+static struct pscolor lc = { 0.0, 0.0, 0.0 };	/* labels: black */
+static struct pscolor sc = { 0.0, 0.0, 0.3 };	/* signals: dark blue */
+static char *prog_name(char *s);
+static int printstrip(WFDB_Time t0, WFDB_Time t1, char *record, char *title); 
+static int setpagedim(char *ptype); 
+static int setpagetitle(WFDB_Time t);
+static void append_scale(char *desc, char *units, double scale);
+static void cont(int x, int y);
+static void ejectpage(void);
+static void flush_cont(void);
+static void grid(int x0, int y0, int x1, int y1, double xtick, double ytick);
+static void Grid(int x0, int y0, int x1, int y1, double xtick, double ytick);
+static void help(void);
+static void label(const char *s);
+static void larger(void);
+static void move(int x, int y);
+static void newpage(void);
+static void plabel(const char *s, int t);
+static void process(FILE *cfile);
+static void rlabel(const char *s);
+static void rtlabel(const char *s); 
+static void setbar1(int ya, int yd);
+static void setbar2(int y);
+static void setcourier(double size);
+static void setitalic(double size);
+static void setmargins(void);
+static void setrgbcolor(struct pscolor *color);
+static void setroman(double size);
+static void smaller(void);
+static void tlabel(const char *s);
 
-char *prog_name();
-int printstrip(), setpagedim(), setpagetitle();
-void append_scale(), cont(), ejectpage(), flush_cont(), grid(), Grid(), help(),
-    label(), larger(), move(), newpage(), plabel(), process(), rlabel(),
-    rtlabel(), setbar1(), setbar2(), setcourier(), setitalic(), setmargins(),
-    setrgbcolor(), setroman(), smaller(), tlabel();
-
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char *p, *getenv();
+    char *p;
     FILE *cfile = NULL;
     int i, j;
     struct pscolor *colorp;
     struct tm *now;
-    time_t t, time();
+    time_t t;
 
     t = time((time_t *)NULL);    /* get current time from system clock */
     now = localtime(&t);
@@ -209,7 +227,7 @@ char *argv[];
     (void)sprintf(copyright, COPYR, now->tm_year + 1900);
 
     /* Set the default page dimensions and margins. */
-    (void)setpagedim();
+    (void)setpagedim(NULL);
     setmargins();
     
     /* Set other defaults (see descriptions above). */
@@ -350,7 +368,7 @@ char *argv[];
 	    break;
 	  case 'L':	/* specify landscape mode */
 	    Lflag = 1;
-	    (void)setpagedim();
+	    (void)setpagedim(NULL);
 	    if (!mflag) setmargins();
 	    else {
 		s_defwidth = 25.0 * (int)((p_width - (imargin+omargin))/25.0);
@@ -399,7 +417,7 @@ char *argv[];
 	    pflag = 1;
 	    break;
 	  case 'P':	/* set page size */
-	    if (++i >= argc || (ptype = argv[i], setpagedim() == 0)) {
+	    if (++i >= argc || (ptype = argv[i], setpagedim(ptype) == 0)) {
 		(void)fprintf(stderr,
 			      "%s: page size specification must follow -P\n",
 			pname);
@@ -567,10 +585,9 @@ int usflag = 0;		/* if non-zero, uncalibrated signals were plotted */
 #define rhpage()	((eflag == 0) || (page & 1))
 
 /* Read and execute commands from a file. */
-void process(cfile)
-FILE *cfile;
+static void process(FILE *cfile)
 {
-    char *tokptr, *strtok();
+    char *tokptr;
     int i;
     WFDB_Time t0, t1, tt;
     static char combuf[256];
@@ -723,9 +740,7 @@ double t_height;	/* height (mm) of space alloted per trace */
    returns 2 if completely successful, 1 if the signals were plotted but not
    the annotations, or 0 if nothing was printed. */
 
-int printstrip(t0, t1, record, title)
-WFDB_Time t0, t1;
-char *record, *title;
+static int printstrip(WFDB_Time t0, WFDB_Time t1, char *record, char *title)
 {
     char *ts;
     double curr_s_top;
@@ -1210,7 +1225,7 @@ char *record, *title;
    are in millimeters and refer to the imageable area (centered on the page),
    not to the physical size of the paper.  Except for `lwletter', the defined
    page sizes are those used by the Sun SPARCprinter. */
-int setpagedim()
+static int setpagedim(char *ptype)
 {
     if (strcmp(ptype, "A4") == 0) {
 	p_width = 201.85;
@@ -1265,8 +1280,7 @@ int setpagedim()
 }
 
 /* setpagetitle() sets a page title based on its time argument. */
-int setpagetitle(t)
-WFDB_Time t;
+static int setpagetitle(WFDB_Time t)
 {
     int hours, minutes, seconds, days, months, year = -1;
     char *s;
@@ -1285,7 +1299,7 @@ WFDB_Time t;
 
 /* setmargins() determines the default margins and the strip width from the
    page size. */
-void setmargins()
+static void setmargins(void)
 {
     s_defwidth = 25.0 * ((int)((p_width - 50.0)/25.0));
     tmargin = 20.0;
@@ -1295,10 +1309,7 @@ void setmargins()
     footer_y = 0.5*bmargin;
 }
 
-void append_scale(desc, units, scale)
-char *desc;
-char *units;
-double scale;
+static void append_scale(char *desc, char *units, double scale)
 {
     char *sctbuf, *scp;
 
@@ -1344,17 +1355,13 @@ double scale;
    (xtick and ytick) are in millimeters (converted to printer coordinates by
    the PostScript `grid' procedure to minimize roundoff error). */   
 
-void grid(x0, y0, x1, y1, xtick, ytick)
-int x0, y0, x1, y1;
-double xtick, ytick;
+static void grid(int x0, int y0, int x1, int y1, double xtick, double ytick)
 {
     (void)printf("%d %d %d %d %g %g grid\n", x0, y0, x1, y1, xtick, ytick);
 }
 
 /* As above, but print the alternate grid. */
-void Grid(x0, y0, x1, y1, xtick, ytick)
-int x0, y0, x1, y1;
-double xtick, ytick;
+static void Grid(int x0, int y0, int x1, int y1, double xtick, double ytick)
 {
     (void)printf("%d %d %d %d %g %g Grid\n", x0, y0, x1, y1, xtick, ytick);
 }
@@ -1366,11 +1373,10 @@ double xtick, ytick;
    of each page seems to fix this problem completely, with a relatively
    low overhead.
 */
-void newpage()
+static void newpage()
 {
-    char *getenv();
     double cox, coy, pnx, pny;
-    void sendprolog();
+    void sendprolog(void);
 
     lmargin = rhpage() ? imargin + boff : omargin - boff;
     rmargin = rhpage() ? omargin - boff : imargin + boff;
@@ -1433,7 +1439,7 @@ void newpage()
 
 /* If anything has been printed on the current page, print the header as
    appropriate and eject the page. */
-void ejectpage()
+static void ejectpage()
 {
     flush_cont();
     if (s_top != -9999.) {
@@ -1516,8 +1522,7 @@ void ejectpage()
     }
 }
 
-void setrgbcolor(color)
-struct pscolor *color;
+void setrgbcolor(struct pscolor *color)
 {
   static struct pscolor currentcolor = { -1.0, -1.0, -1.0 };
 
@@ -1542,14 +1547,12 @@ struct pscolor *color;
 }
 
 static int bya, byd;
-void setbar1(ya, yd)
-int ya, yd;
+static void setbar1(int ya, int yd)
 {
     bya = ya; byd = yd;
 }
 
-void setbar2(y)
-int y;
+static void setbar2(int y)
 {   
     if (Mflag < 2)	/* draw bars across all signals */
 	(void)printf("%d %d %d %d sb\n", bya, y+mm(5.), y-mm(3.), byd);
@@ -1565,9 +1568,7 @@ int y;
 /* Text-printing functions. */
 
 /* Low-level text-printing function. */
-void plabel(s, t)
-char *s;
-int t;
+static void plabel(const char *s, int t)
 {
     flush_cont();
     (void)putchar('(');
@@ -1583,23 +1584,20 @@ int t;
 }
 
 /* Print a string beginning at the current point. */
-void label(s)
-char *s;
+static void label(const char *s)
 {
     plabel(s, 't');
 }
 
 /* Print a string ending at the current point. */
-void rlabel(s)
-char *s;
+static void rlabel(const char *s)
 {
     plabel(s, 'b');
 }
 
 /* Print a string using small caps for the lower-case letters, beginning at
    the current point. */
-void tlabel(s)
-char *s;
+void tlabel(const char *s)
 {
     int big = 1;
     static char c[2];
@@ -1620,8 +1618,7 @@ char *s;
 }
 
 /* As above, but ending at the current point. */
-void rtlabel(s)
-char *s;
+static void rtlabel(const char *s)
 {
     int big = 1;
     static char c[2], *p;
@@ -1647,38 +1644,35 @@ char *s;
 char style;		/* type style: I (italic), R (roman), S (sans serif) */
 double fsize;		/* font size in printer's points */
 
-void setitalic(size)
-double size;
+static void setitalic(double size)
 {
     flush_cont();
     fsize = size; style = 'I';
     (void)printf("%g %c\n", fsize, style); 
 }
 
-void setroman(size)
-double size;
+static void setroman(double size)
 {
     flush_cont();
     fsize = size; style = 'R';
     (void)printf("%g %c\n", fsize, style); 
 }
 
-void setcourier(size)
-double size;
+static void setcourier(double size)
 {
     flush_cont();
     fsize = size; style = 'C';
     (void)printf("%g %c\n", fsize, style);
 }
 
-void smaller()	/* change to a font 20% smaller in the current style */
+static void smaller(void)	/* change to a font 20% smaller in the current style */
 {
     flush_cont();
     fsize *= 0.8;
     (void)printf("%g %c\n", fsize, style);
 }
 
-void larger()	/* change to a font 25% larger in the current style */
+static void larger()	/* change to a font 25% larger in the current style */
 {
     flush_cont();
     fsize *= 1.25;
@@ -1691,8 +1685,7 @@ int xc, yc;	/* current move/cont "pen position" (pixels) */
 
 /* (Re)set the current point without drawing a line.  The arguments are in
    pixels. */
-void move(x, y)
-int x, y;
+static void move(int x, int y)
 {
     flush_cont();
     (void)printf("%d %d m\n", x, y);
@@ -1719,8 +1712,7 @@ int x, y;
 
 static char contbuf[256], *contp = contbuf;
 
-void cont(x, y)
-int x, y;
+static void cont(int x, int y)
 {
     char c;
     int dx, dy;
@@ -1749,7 +1741,7 @@ int x, y;
 #endif
 }
 
-void flush_cont()
+static void flush_cont(void)
 {
 #if DEBUG
     printf("flush_cont()\n");
@@ -1762,8 +1754,7 @@ void flush_cont()
 #endif
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -1836,7 +1827,7 @@ static char *help_strings[] = {
  NULL
 };
 
-void help()
+void help(void)
 {
     int i;
 

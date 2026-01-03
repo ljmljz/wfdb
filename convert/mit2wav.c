@@ -116,36 +116,88 @@ Bytes 44 - L-1: sample data, consisting of:
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 #ifdef NOMKSTEMP
 #define mkstemp mktemp
 #endif
 
-char *pname;	/* name of this program, for use in error messages */
-FILE *ofile;	/* output (.wav) file pointer */
+static char *help_strings[] = {
+    "usage: %s -o FILE.wav -r RECORD [ OPTIONS ... ]\n",
+    "where FILE.wav is the name of the wav-format output signal file,",
+    "RECORD is the record name, and OPTIONS may include:",
+    " -h         print this usage summary",
+    " -n NEWREC  create a header file for the output signal file, so it",
+    "             may be read as record NEWREC",
+    NULL
+};
 
-int out16(short);
-int out32(long);
-char *prog_name(char *);
-void help(void);
-
-main(int argc, char **argv)
+static void help(const char *pname)
 {
-    char buf[80], *nrec = NULL, *ofname, *record = NULL, tfname[10];
+    int i;
+
+    (void)fprintf(stderr, help_strings[0], pname);
+    for (i = 1; help_strings[i] != NULL; i++)
+	(void)fprintf(stderr, "%s\n", help_strings[i]);
+}
+
+static char *prog_name(const char *s)
+{
+    const char *p = s + strlen(s);
+
+#ifdef MSDOS
+    while (p >= s && *p != '\\' && *p != ':') {
+	if (*p == '.')
+	    *(char *)p = '\0';		/* strip off extension */
+	if ('A' <= *p && *p <= 'Z')
+	    *(char *)p += 'a' - 'A';	/* convert to lower case */
+	p--;
+    }
+#else
+    while (p >= s && *p != '/')
+	p--;
+#endif
+    return (char *)(p+1);
+}
+
+static FILE *ofile;	/* output (.wav) file pointer */
+
+static int out16(short x)
+{
+    if (putc(x & 0xff, ofile) == EOF ||
+	putc((x >> 8) & 0xff, ofile) == EOF)
+	return (EOF);
+    return (2);
+}
+
+static int out32(long x)
+{
+    if (putc(x & 0xff, ofile) == EOF ||
+	putc((x >> 8) & 0xff, ofile) == EOF ||
+	putc((x >> 16) & 0xff, ofile) == EOF ||
+	putc((x >> 24) & 0xff, ofile) == EOF)
+	return (EOF);
+    return (4);
+}
+
+int main(int argc, char **argv)
+{
+    char buf[80], *nrec = NULL, *ofname = NULL, *record = NULL, tfname[10];
     double sps;
     FILE *sfile;
-    int bitspersample = 0, bytespersecond, framelen, i, mag, nsig, *offset,
-	*shift;
+    int bitspersample = 0, bytespersecond, framelen, i, mag, nsig, *offset = NULL,
+	*shift = NULL;
     long nsamp;
-    static WFDB_Sample *x, *y;
-    static WFDB_Siginfo *s;
+    static WFDB_Sample *x = NULL, *y = NULL;
+    static WFDB_Siginfo *s = NULL;
+    const char *pname = prog_name(argv[0]);
 
     /* Interpret the command line. */
-    pname = prog_name(argv[0]);
     for (i = 1; i < argc; i++) {
 	if (*argv[i] == '-') switch (*(argv[i]+1)) {
 	  case 'h':	/* help requested */
-	    help();
+	    help(pname);
 	    exit(1);
 	    break;
 	  case 'n':	/* new record name follows */
@@ -159,7 +211,7 @@ main(int argc, char **argv)
 	  case 'o':	/* output file name follows */
 	    if (++i >= argc) {
 		(void)fprintf(stderr,
-		      "%s: name of wav-format output file must follow -o\n",
+			      "%s: name of wav-format output file must follow -o\n",
 			      pname);
 		exit(1);
 	    }
@@ -193,13 +245,13 @@ main(int argc, char **argv)
 
     /* Check that required arguments are present and valid. */
     if (ofname == NULL || record == NULL) {
-	help();
+	help(pname);
 	exit(1);
     }
     if (nrec && strcmp(record, nrec) == 0) {
 	(void)fprintf(stderr,
 	      "%s: names of input and output records must not be identical\n",
-		      pname);
+	      pname);
 	exit(1);
     }
 
@@ -265,8 +317,7 @@ main(int argc, char **argv)
 	fprintf(stderr, "%s: can't write to %s\n", pname, ofname);
 	exit(2);
     }
-    out32(nsamp*framelen + 36);  /* nsamp*framelen sample bytes, and 36 more
-				    bytes of miscellaneous embedded header */
+    out32(nsamp*framelen + 36);
     fwrite("WAVEfmt ", 1, 8, ofile);
     out32(16);	/* number of bytes to follow in format chunk */
     out16(1);	/* format tag */
@@ -303,60 +354,4 @@ main(int argc, char **argv)
     system(buf);
 
     exit(0);	/*NOTREACHED*/
-}
-
-int out16(short x)
-{
-    if (putc(x & 0xff, ofile) == EOF ||
-	putc((x >> 8) & 0xff, ofile) == EOF)
-	return (EOF);
-    return (2);
-}
-
-int out32(long x)
-{
-    if (putc(x & 0xff, ofile) == EOF ||
-	putc((x >> 8) & 0xff, ofile) == EOF ||
-	putc((x >> 16) & 0xff, ofile) == EOF ||
-	putc((x >> 24) & 0xff, ofile) == EOF)
-	return (EOF);
-    return (4);
-}
-
-char *prog_name(char *s)
-{
-    char *p = s + strlen(s);
-
-#ifdef MSDOS
-    while (p >= s && *p != '\\' && *p != ':') {
-	if (*p == '.')
-	    *p = '\0';		/* strip off extension */
-	if ('A' <= *p && *p <= 'Z')
-	    *p += 'a' - 'A';	/* convert to lower case */
-	p--;
-    }
-#else
-    while (p >= s && *p != '/')
-	p--;
-#endif
-    return (p+1);
-}
-
-static char *help_strings[] = {
-    "usage: %s -o FILE.wav -r RECORD [ OPTIONS ... ]\n",
-    "where FILE.wav is the name of the wav-format output signal file,",
-    "RECORD is the record name, and OPTIONS may include:",
-    " -h         print this usage summary",
-    " -n NEWREC  create a header file for the output signal file, so it",
-    "             may be read as record NEWREC",
-    NULL
-};
-
-void help()
-{
-    int i;
-
-    (void)fprintf(stderr, help_strings[0], pname);
-    for (i = 1; help_strings[i] != NULL; i++)
-	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }

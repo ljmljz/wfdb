@@ -25,28 +25,29 @@ _______________________________________________________________________________
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <wfdb/wfdb.h>
 
-char *pname;	/* name by which this program was invoked */
-char *nrec;	/* name of record to be created */
-double *c;	/* pointer to array of filter coefficients */
-int flen;	/* number of coefficients (filter length) */
-int nsig;	/* number of signals to be filtered */
-int ri, ro;	/* rectify input/output if non-zero */
-int **vin;	/* pointers to input vectors */
-int *vout;	/* pointer to output vector */
-WFDB_Time nsamp; /* number of samples to be processed */
+static char *pname;	/* name by which this program was invoked */
+static char *nrec;	/* name of record to be created */
+static double *c;	/* pointer to array of filter coefficients */
+static int flen;	/* number of coefficients (filter length) */
+static int nsig;	/* number of signals to be filtered */
+static int ri, ro;	/* rectify input/output if non-zero */
+static int **vin;	/* pointers to input vectors */
+static int *vout;	/* pointer to output vector */
+static WFDB_Time nsamp; /* number of samples to be processed */
 
-char *prog_name();
-void help(), init(), memerr();
+static char *prog_name(char *s);
+static void help(void);
+static void init(int argc, char *argv[]);
+static void memerr(void);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     int f, i = 0, j, s;
-    void init();
 
     init(argc, argv);	/* read and interpret command line */
     while ((nsamp == -1L || nsamp-- > 0L) && getvec(vin[i]) >= 0) {
@@ -70,14 +71,13 @@ char *argv[];
     if (nrec) (void)newheader(nrec);
     wfdbquit();
     exit(0);	/*NOTREACHED*/
+    return 0;
 }
 
-void init(argc, argv)
-int argc;
-char *argv[];
+static void init(int argc, char *argv[])
 {
     char *irec = "16", *orec = "16", *p;
-    double *tc = NULL, atof();
+    double *tc = NULL;
     int i, n = 128, s;
     WFDB_Time from = 0L, shift = 0L, to = 0L;
     static int gvmode = 0;
@@ -257,14 +257,13 @@ char *argv[];
     }
 }
 
-void memerr()
+static void memerr()
 {
     (void)fprintf(stderr, "%s: insufficient memory\n", pname);
     exit(2);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

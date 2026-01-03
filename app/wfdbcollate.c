@@ -84,26 +84,24 @@ library.  */
 #define DEFSEGLEN	"10:0"	/* segments are 10 minutes long by default */
 #define MINSEGLEN	"15"	/* segments must be at least 15 seconds long */
 
-char *pname, *prog_name();
-WFDB_Anninfo ai;
-WFDB_Annotation annot;
-WFDB_Sample *v;
-WFDB_Siginfo *si;
+static char *pname;
+static WFDB_Anninfo ai;
+static WFDB_Annotation annot;
+static WFDB_Sample *v;
+static WFDB_Siginfo *si;
 
-int collate();
-void help(), splitrecord();
+static char *prog_name(char *s);
+static int collate(int argc, char *argv[]);
+static void help(void);
+static void splitrecord(int argc, char *argv[]);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     collate(argc, argv);
     exit(0);
 }
 
-void splitrecord(argc, argv)
-int argc;
-char *argv[];
+static splitrecord(int argc, char *argv[])
 {
     int framelen, i, segnumber = 0, nsig;
     static char *irecname, *orecname, segname[15], sigfname[19];
@@ -249,9 +247,7 @@ char *argv[];
     exit(0);
 }
 
-int collate(argc, argv)
-int argc;
-char *argv[];
+static int collate(int argc, char *argv[])
 {
     char **irecname, *orecname = NULL, ofname[20];
     int first, last, i, nsegments = 0, nsig, segment;
@@ -368,8 +364,7 @@ char *argv[];
     return (0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -388,7 +383,7 @@ char *s;
     return (p+1);
 }
 
-void help()
+static void help(void)
 {
     fprintf(stderr,
 	    "usage: %s -i IREC [ IREC ... ] -o OREC [ -a ANNOTATOR ]\n",

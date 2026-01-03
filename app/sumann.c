@@ -42,20 +42,20 @@ static char *nstring[6] = {
 	"Signal 0 noisy",	"Signal 1 noisy",
 	"Both signals noisy" };
 
-char *pname;
+static char *pname;
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char *argv[])
 {
     static WFDB_Anninfo ai;
     WFDB_Annotation annot;
     int i, j, rhythm = 0, noise = 2, qflag = 0;
     static long tab[ACMAX+1], rtab[MAXR+1], ntab[6];
     static WFDB_Time rtime[MAXR+1], ntime[6], r0, n0, from_time, to_time;
-    char *record = NULL, *prog_name();
+    char *record = NULL;
     FILE *bfile = NULL, *rfile = NULL;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -329,8 +329,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -366,7 +365,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

@@ -63,27 +63,30 @@ extern void exit();
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgcodes.h>
 
-char *pname;
+static char *pname;
 struct annlistentry {
     struct annlistentry *next, *prev;
     WFDB_Annotation annotation;
 } annlist;
 
-int in_order = 1;
+static int in_order = 1;
 
-main(argc, argv)	
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+static void copybytes(char *dest, char *src, int n);
+static int insert_ann(WFDB_Annotation *pa);
+
+int main(int argc, char *argv[])
 {
     static WFDB_Anninfo ai[2];
     static WFDB_Annotation annot;
     static struct annlistentry *ap;
-    char *record = NULL, *prog_name();
+    char *record = NULL;
     WFDB_Time from = 0L, to = 0L;
     long nann = 0L;
-    int i, insert_ann();
+    int i;
     double sps, spm, tps;
-    void cleanup(), help();
+    void cleanup();
 
     pname = prog_name(argv[0]);
 
@@ -246,12 +249,10 @@ char *argv[];
 }
 
 static struct annlistentry *lastp = &annlist;
-int insert_ann(pa)
-WFDB_Annotation *pa;
+static int insert_ann(WFDB_Annotation *pa)
 {
     char *p;
     static struct annlistentry *ap, *newp = NULL;
-    void copybytes();
 
     if (pa->aux) p = (char *)malloc(*(pa->aux)+2);
     newp = (struct annlistentry *)malloc(sizeof(struct annlistentry));
@@ -324,16 +325,13 @@ void cleanup()	/* free the memory used for the annotation list */
 }
 
 /* This function emulates memcpy (which is not universally available). */
-void copybytes(dest, src, n)
-char *dest, *src;
-int n;
+static void copybytes(char *dest, char *src, int n)
 {
     while (n-- > 0)
 	*dest++ = *src++;
 }
 
-char *prog_name(s)
-char *s;
+char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -364,7 +362,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+void help(void)
 {
     int i;
 

@@ -4,16 +4,21 @@ Convert *.ecg or *.txt files from an AHA Database DVD to WFDB-compatible format
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgmap.h>
 
-int format;
-FILE *ifile;
-WFDB_Annotation a;
-WFDB_Sample v[2];
+static int format;
+static FILE *ifile;
+static WFDB_Annotation a;
+static WFDB_Sample v[2];
 
-void process(char *r);
-int readbindata(void)
+static void process(const char *record);
+static int readbindata(void);
+static int readtxtdata(void);
+
+static int readbindata(void)
 {
     char data[5];
 
@@ -28,7 +33,7 @@ int readbindata(void)
     return (2);		/* samples and annotation */
 }
 
-int readtxtdata(void)
+static int readtxtdata(void)
 {
     char buf[16], c;
     int i, n;
@@ -54,7 +59,7 @@ int readtxtdata(void)
     return (2);		/* samples and annotation */
 }
 	
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     char *p, *record;
     int i, sflag = 0;
@@ -114,7 +119,7 @@ main(int argc, char **argv)
     exit(0);
 }
 
-void process(char *record)
+static void process(const char *record)
 {
     char ofname[10];
     int stat;
@@ -139,7 +144,7 @@ void process(char *record)
 	return;
     }
     if (format == 1) {
-	while (stat = readbindata()) {
+	while ((stat = readbindata())) {
 	    (void)putvec(v);
 	    if (stat > 1) {
 		a.time = t;
@@ -149,7 +154,7 @@ void process(char *record)
 	}
     }
     else {
-	while (stat = readtxtdata()) {
+	while ((stat = readtxtdata())) {
 	    t++;
 	    (void)putvec(v);
 	    if (stat > 1) {

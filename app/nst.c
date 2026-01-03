@@ -43,14 +43,18 @@ _______________________________________________________________________________
 #endif
 #endif
 
-char *pname, *prog_name();
-double *gn;
-int format = 16, nisig, nnsig, *nse, *vin, *vout, *z, *zz;
-WFDB_Siginfo *si;
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+static void nst(char *irec, char *nrec, char *protocol,
+		 char *orec, double snr);
+
+static char *pname;
+static double *gn;
+static int format = 16, nisig, nnsig, *nse, *vin, *vout, *z, *zz;
+static WFDB_Siginfo *si;
+
+int main(int argc, char *argv[])
 {
     static char answer[20], buf[256], *wfdbp, irec[10], nrec[21], nnrec[20],
         orec[10], refaname[10], *protocol, tfname[20], *p, *s;
@@ -60,8 +64,7 @@ char *argv[];
     WFDB_Time t, t0, tf, dt;
     WFDB_Anninfo ai;
     static WFDB_Annotation annot;
-    void help(), nst();
-
+    
     pname = prog_name(argv[0]);
     for (i = 1; i < argc; i++) {
 	if (*argv[i] == '-') switch (*(argv[i]+1)) {
@@ -416,9 +419,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-void nst(irec, nrec, protocol, orec, snr)
-char *irec, *nrec, *protocol, *orec;
-double snr;
+static void nst(char *irec, char *nrec, char *protocol, char *orec, double snr)
 {
     char buf[80], ofname[20], *p;
     int errct = 0, i;
@@ -542,8 +543,7 @@ double snr;
     wfdbquit();
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -583,7 +583,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

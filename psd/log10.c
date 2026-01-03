@@ -1,4 +1,4 @@
-/* file: log10.c	G. Moody	19 July 1995
+/* file: log10.c		G. Moody	19 July 1995
 		   Last revised:	16 December 2020
 
 -------------------------------------------------------------------------------
@@ -40,13 +40,14 @@ _______________________________________________________________________________
 #define MINDOUBLE 1.0e-10
 #endif
 
-main()
+int main(void)
 {
     double x, y;
 
     while (scanf("%lf%lf", &x, &y) == 2) {
-	if (x < MINDOUBLE) x = MINDOUBLE;
-	if (y < MINDOUBLE) y = MINDOUBLE;
-	printf("%lf %lf %lf %lf\n", log10(x), log10(y), x, y);
+        if (x < MINDOUBLE) x = MINDOUBLE;
+        if (y < MINDOUBLE) y = MINDOUBLE;
+        printf("%lf %lf %lf %lf\n", log10(x), log10(y), x, y);
     }
+    return 0;
 }

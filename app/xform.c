@@ -31,10 +31,11 @@ _______________________________________________________________________________
 /* The following definition yields dither with a triangular PDF in (-1,1). */
 #define DITHER	        (((double)rand() + (double)rand())/RAND_MAX - 1.0)
 
-char *pname, *prog_name();
-char *script = NULL;
-double gcd();
-void help();
+static char *pname;
+static char *prog_name(char *s);
+static char *script = NULL;
+static double gcd(double x, double y);
+static void help(void);
 
 static char *script_fgets(char *buffer, size_t length, FILE *f)
 {
@@ -50,9 +51,7 @@ static char *script_fgets(char *buffer, size_t length, FILE *f)
     return (buffer);
 }
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     char btstring[30], **description, **filename, *irec = NULL, *orec = NULL,
 	*nrec = NULL, *startp = "0:0", **units;
@@ -1147,8 +1146,7 @@ char *argv[];
    Euclid's algorithm, modified so that an exact answer is not required if the
    (possibly non-integral) arguments do not have a common divisor that can be
    represented exactly. */
-double gcd(x, y)
-double x, y;
+static double gcd(double x, double y)
 {
     double tol;
 
@@ -1162,8 +1160,7 @@ double x, y;
     }
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -1211,7 +1208,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

@@ -237,6 +237,8 @@ _______________________________________________________________________________
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifndef NOWFDB
 #include <wfdb/wfdb.h>
@@ -254,7 +256,9 @@ _______________________________________________________________________________
 #ifndef SWAP
 #define fwriteswapped	fwrite
 #else
-size_t fwriteswapped(void *p, size_t size, size_t nmemb, FILE *stream)
+static size_t fwriteswapped(void *p, size_t size, size_t nmemb, FILE *stream);
+
+static size_t fwriteswapped(void *p, size_t size, size_t nmemb, FILE *stream)
 {
     char *q;
     size_t n = nmemb*size;
@@ -276,7 +280,28 @@ size_t fwriteswapped(void *p, size_t size, size_t nmemb, FILE *stream)
 }
 #endif
 
-unsigned short get16(char *p)
+static unsigned short get16(char *p);
+static void put16(unsigned short val, char *p);
+static unsigned long get32(char *p);
+static unsigned short getcrc(char *p, long length);
+static int crcok(char *p, long length, unsigned short crcref, char *description);
+static void lowpass(void);
+static int write_wfdb_record();
+static int section0(unsigned char *p, long len);
+static int section1(unsigned char *p, long len);
+static int section2(unsigned char *p, long len);
+static int section3(unsigned char *p, long len);
+static int section4(unsigned char *p, long len);
+static int section5(unsigned char *p, long len);
+static int section6(unsigned char *p, long len);
+static int section7(unsigned char *p, long len);
+static int section8(unsigned char *p, long len);
+static int section9(unsigned char *p, long len);
+static int section10(unsigned char *p, long len);
+static int section11(unsigned char *p, long len);
+static void precgmeas(FILE *ofile);
+
+static unsigned short get16(char *p)
 {
     unsigned short result;
 
@@ -285,13 +310,13 @@ unsigned short get16(char *p)
     return (result);
 }
 
-void put16(unsigned short val, char *p)
+static void put16(unsigned short val, char *p)
 {
     *p++ = val & 0xff;
     *p = val >> 8;
 }
 
-unsigned long get32(char *p)
+static unsigned long get32(char *p)
 {
     unsigned long result;
 
@@ -302,16 +327,16 @@ unsigned long get32(char *p)
     return (result);
 }
 
-int bflag = 0;		/* 0: normal operation, 1: show baselines only */
-int fflag = 0;		/* 0: quit on CRC error, 1: continue if possible */
-int tflag = 0;		/* 0: normal operation, 1: show templates only */
-int vflag = 0;		/* 0: run quietly, 1: print (lots of) messages */
-int xflag = 0;		/* 0: run quietly, 1: print hexdump */
+static int bflag = 0;		/* 0: normal operation, 1: show baselines only */
+static int fflag = 0;		/* 0: quit on CRC error, 1: continue if possible */
+static int tflag = 0;		/* 0: normal operation, 1: show templates only */
+static int vflag = 0;		/* 0: run quietly, 1: print (lots of) messages */
+static int xflag = 0;		/* 0: run quietly, 1: print hexdump */
 
-int shift = 0;		/* 0: normal operation; otherwise, shift templates
+static int shift = 0;		/* 0: normal operation; otherwise, shift templates
 			   by this many samples before adding to residuals */
 
-unsigned short getcrc(char *p, long length)
+static unsigned short getcrc(char *p, long length)
 {
     unsigned char a, b, crchigh = 0xff, crclow = 0xff;
     unsigned short crc;
@@ -348,7 +373,7 @@ unsigned short getcrc(char *p, long length)
     return (crc);
 }
 
-int crcok(char *p, long length, unsigned short crcref, char *description)
+static int crcok(char *p, long length, unsigned short crcref, char *description)
 {
     unsigned short crc;
 
@@ -368,65 +393,65 @@ int crcok(char *p, long length, unsigned short crcref, char *description)
     }
 }
 
-char *pname;	   /* the name of this program (for use in error messages) */
-int nleads = -1;	/* number of ECG leads */
-int nqrs = -1;		/* number of beats detected */
-unsigned long *nsamp;	/* nsamp[i]: number of samples in lead i */
-long rblen;		/* number of samples in refbeat (template) */
-long rblenms;		/* length of refbeat in milliseconds */
-int fcM;		/* index of fiducial within refbeat */
-double gref, gres;   /* gains for refbeat and for residuals (nanovolt/unit) */
-double sfreq = -1.;	/* sampling frequency (samples/second/lead) */
-char recdate[20];	/* date of recording */
-char rectime[20];	/* time of recording */
-char recname[12];	/* record name */
-char patient_name[100];	/* patient's name (LAST, FIRST) */
-char referring_dr[100];	/* referring dr */
-char comments[200];	/* comments */
-char patient_id[30];	/* patient ID (medical record number) */
-int age = -1;		/* patient's age */
-int sex = -1;		/* 1: male, 2: female, 0: unknown, 9: unspecified */
-int RRint = -1;         /* RR interval */
-int Pon = -1;           /* P onset */
-int Pend = -1;          /* P end */
-int QRSon = -1;         /* QRS onset */
-int QRSend = -1;        /* QRS end */
-int Tend = -1;          /* T end */
-short Paxis = 999;         /* P axis */
-short QRSaxis = 999;       /* QRS axis */
-short Taxis = 999;         /* T axis */
-int blfilt = -1;	/* baseline filter -3 dB point */
-int lpfilt = -1;	/* low-pass filter -3 dB point */
-int filter_bit = -1;	/* see SCP spec */
-int tdevid = -1;	/* ID number of acquiring device */
-int tinst = -1;         /* institution number */
-int tdept = -1;         /* department number */
-char *dept = "<missing>";/* location description or code */
-char *inst = "<missing>";/* institution description */
-int stmnts = -1;        /* number of statements in report */
-char *report[1200];      /* report */
-int lflag = 0;		/* if non-zero, this program should low-pass filter
+static char *pname;	   /* the name of this program (for use in error messages) */
+static int nleads = -1;	/* number of ECG leads */
+static int nqrs = -1;		/* number of beats detected */
+static unsigned long *nsamp;	/* nsamp[i]: number of samples in lead i */
+static long rblen;		/* number of samples in refbeat (template) */
+static long rblenms;	/* length of refbeat in milliseconds */
+static int fcM;		/* index of fiducial within refbeat */
+static double gref, gres;   /* gains for refbeat and for residuals (nanovolt/unit) */
+static double sfreq = -1.;	/* sampling frequency (samples/second/lead) */
+static char recdate[20];	/* date of recording */
+static char rectime[20];	/* time of recording */
+static char recname[12];	/* record name */
+static char patient_name[100];	/* patient's name (LAST, FIRST) */
+static char referring_dr[100];	/* referring dr */
+static char comments[200];	/* comments */
+static char patient_id[30];	/* patient ID (medical record number) */
+static int age = -1;		/* patient's age */
+static int sex = -1;		/* 1: male, 2: female, 0: unknown, 9: unspecified */
+static int RRint = -1;         /* RR interval */
+static int Pon = -1;           /* P onset */
+static int Pend = -1;          /* P end */
+static int QRSon = -1;         /* QRS onset */
+static int QRSend = -1;        /* QRS end */
+static int Tend = -1;          /* T end */
+static short Paxis = 999;         /* P axis */
+static short QRSaxis = 999;       /* QRS axis */
+static short Taxis = 999;         /* T axis */
+static int blfilt = -1;	/* baseline filter -3 dB point */
+static int lpfilt = -1;	/* low-pass filter -3 dB point */
+static int filter_bit = -1;	/* see SCP spec */
+static int tdevid = -1;	/* ID number of acquiring device */
+static int tinst = -1;         /* institution number */
+static int tdept = -1;         /* department number */
+static char *dept = "<missing>";/* location description or code */
+static char *inst = "<missing>";/* institution description */
+static int stmnts = -1;        /* number of statements in report */
+static char *report[1200];      /* report */
+static int lflag = 0;		/* if non-zero, this program should low-pass filter
 			   its output */
-int wflag = 0;		/* if non-zero, this program should produce a WFDB
+static int wflag = 0;		/* if non-zero, this program should produce a WFDB
 			   format record */
-int zflag = 0;		/* if non-zero, remove final transients and zero-mean
+static int zflag = 0;		/* if non-zero, remove final transients and zero-mean
 			   the signals */
-struct subzone {	/* reference beat subtraction zone */
+static struct subzone {	/* reference beat subtraction zone */
     short type;		/* beat type (0: dominant) */
     long t0;		/* first sample in zone */
     long t1;		/* fiducial */
     long t2;		/* last sample in zone */
 } *subz;
 
-short **ecg;		/* ecg[i]: reconstructed ECG for ith lead */
-short **refbeat;	/* reference beat (template) */
+static short **ecg;		/* ecg[i]: reconstructed ECG for ith lead */
+static short **refbeat;	/* reference beat (template) */
 
 /* Indices of the leads within ecg[];  e.g. ecg[aVR][] is the array of samples
    of lead aVR, etc. */
-short leadI = -1, leadII = -1, leadIII = -1, aVR = -1, aVF = -1, aVL = -1,
+static short leadI = -1, leadII = -1, leadIII = -1, aVR = -1, aVF = -1, aVL = -1,
     V1 = -1, V2 = -1, V3 = -1, V4 = -1, V5 = -1, V6 = -1;
 
-struct ECGmeas {	/* sets of measurements in section 10 */
+static struct ECGmeas {	/* sets of measurements in section 10 */
     short leadid;	/* Lead ID (index into leadname[]) */
     short vlen;		/* length of the rest of the data for this lead */
     short Pdur;		/* P duration */
@@ -472,7 +497,7 @@ struct ECGmeas {	/* sets of measurements in section 10 */
    filtered output can do so, by using the -l option.  Note that the filter
    is applied only to the .ecg file, not to the text-format samples. */
 
-void lowpass()
+static void lowpass(void)
 {
     int i, j;
     short *in, *out;
@@ -499,12 +524,12 @@ void lowpass()
 /* ncompare is used by qsort() (in the calculation of the signal medians).
    It returns the difference between the values pointed to by its arguments
    (two samples of a signal). */
-int ncompare(const void *a, const void *b)
+static int ncompare(const void *a, const void *b)
 {
     return (*(const short *)a - *(const short *)b);
 }
 
-int write_output()
+static int write_output()
 {
     char dname[16];		/* name of .des file */
     char ename[16];		/* name of .ecg file */
@@ -516,7 +541,6 @@ int write_output()
     FILE *tfile; /* (optional, text) ECG signal file (for debugging) */
     int i;
     static char ecgprolog[512];	/* prolog for .ecg file */
-    void precgmeas();
 
     if (recname[0] == '\0') strcpy(recname, "ecg");  /* default record name */
     sprintf(dname, "%s.des", recname);
@@ -715,7 +739,7 @@ int write_output()
 }
 
 
-int write_wfdb_record()
+static int write_wfdb_record()
 {
 #ifdef NOWFDB
     fprintf(stderr, "Warning: this version of %s was not compiled with"
@@ -778,7 +802,7 @@ int write_wfdb_record()
 #endif
 }
 
-void help()
+static void help()
 {
     fprintf(stderr, "usage: %s -o RECORD [OPTIONS ...] <SCPFILE\n",
 	    pname);
@@ -810,17 +834,18 @@ void help()
     return;
 }
 
-int aflag = 0;
-int skip[12];
+static int aflag = 0;
+static int skip[12];
 
-main(int argc, char **argv)
+static char *prog_name(char *s);
+
+int main(int argc, char **argv)
 {
     unsigned short crc, sec_id;
     unsigned long bytesread, length, sec_len;
     unsigned char desc[20], header[6], *data, *p;
     int i, j, k, m;
     FILE *ofile, *vfile;
-    char *prog_name();
 
     pname = prog_name(argv[0]);
 
@@ -1212,7 +1237,7 @@ main(int argc, char **argv)
     exit(0);
 }
 
-void hexdump(unsigned char *p, long len)
+static void hexdump(unsigned char *p, long len)
 {
     int i;
 
@@ -1224,7 +1249,7 @@ void hexdump(unsigned char *p, long len)
     printf("\n\n");
 }
 
-int section0(unsigned char *p, long len)
+static int section0(unsigned char *p, long len)
 {
     if (strncmp("SCPECG", p+10, 6) != 0)
 	if (vflag) printf(" Warning: SCPECG identifier is missing in header\n");
@@ -1253,17 +1278,17 @@ int section0(unsigned char *p, long len)
     return (1);
 }
 
-char *month[] = { "January", "February", "March", "April", "May", "June",
+static char *month[] = { "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December" };
 
-void censor(char *p, unsigned short len, char c)
+static void censor(char *p, unsigned short len, char c)
 {
     while (--len)
 	*p++ = c;
     *p = '\0';
 }
 
-int section1(unsigned char *p, long len)
+static int section1(unsigned char *p, long len)
 {
     FILE *pfile;
     unsigned short vlen;
@@ -1587,13 +1612,13 @@ int section2(unsigned char *p, long len)
     return (1);
 }
 
-char *leadname[] = {		/* standard lead names */
-    "<Unspecified lead>", "I", "II", "V1", "V2",		 /*  0 -  4 */
+static char *leadname[] = {		/* standard lead names */
+    "<Unspecified lead>", "I", "II", "V1", "V2",			 /*  0 -  4 */
     "V3", "V4", "V5", "V6", "V7",				 /*  5 -  9 */
-    "V2R", "V3R", "V4R", "V5R", "V6R",			 	 /* 10 - 14 */
+    "V2R", "V3R", "V4R", "V5R", "V6R",				 /* 10 - 14 */
     "V7R", "X", "Y", "Z", "CC5",				 /* 15 - 19 */
     "CM5", "Left Arm", "Right Arm", "Left Leg", "I (Frank)",	 /* 20 - 24 */
-    "E", "C", "A", "M", "F",				 	 /* 25 - 29 */
+    "E", "C", "A", "M", "F",					 /* 25 - 29 */
     "H", "I-cal", "II-cal", "V1-cal", "V2-cal",			 /* 30 - 34 */
     "V3-cal", "V4-cal", "V5-cal", "V6-cal", "V7-cal",		 /* 35 - 39 */
     "V2R-cal", "V3R-cal", "V4R-cal", "V5R-cal", "V6R-cal",	 /* 40 - 44 */
@@ -1602,19 +1627,19 @@ char *leadname[] = {		/* standard lead names */
     								 /* 50 - 54 */
     "E-cal", "C-cal", "A-cal", "M-cal", "F-cal",		 /* 55 - 59 */
     "H-cal", "III", "aVR", "aVL", "aVF",			 /* 60 - 64 */
-    "-aVR", "V8", "V9", "V8R", "V9R",			 	 /* 65 - 69 */
+    "-aVR", "V8", "V9", "V8R", "V9R",				 /* 65 - 69 */
     "D (Nehb - Dorsal)", "A (Nehb - Anterior)", "J (Nehb - Inferior",
     "Defibrillator lead: anterior-lateral",
-    "External pacing lead: anterior-posterior",		 	 /* 70 - 74 */
+    "External pacing lead: anterior-posterior",				 /* 70 - 74 */
     "A1 (Auxiliary unipolar lead 1)", "A2 (Auxiliary unipolar lead 2)",
     "A3 (Auxiliary unipolar lead 3)", "A4 (Auxiliary unipolar lead 4)",
-    "V8-cal",							 /* 75 - 79 */
+    "V8-cal",								 /* 75 - 79 */
     "V9-cal", "V8R-cal", "V9R-cal", "D-cal (Nehb - Dorsal)",
     "A-cal (Nehb - Anterior)",					 /* 80 - 84 */
     "J-cal (Nehb - Inferior)"					 /* 85 */
 };
 
-int section3(unsigned char *p, long len)
+static int section3(unsigned char *p, long len)
 {
     int i = 0, nsmax = 0;
 
@@ -1702,7 +1727,7 @@ int section3(unsigned char *p, long len)
     return (1);
 }
 
-int section4(unsigned char *p, long len)
+static int section4(unsigned char *p, long len)
 {
     unsigned short i, stat = 1;
 
@@ -1774,7 +1799,7 @@ int section4(unsigned char *p, long len)
     return (stat);
 }
 
-int section5(unsigned char *p, long len)
+static int section5(unsigned char *p, long len)
 {
     int i;
     p += 16; len -= 16; /* move to data area */
@@ -2054,7 +2079,7 @@ int Huffdecode(unsigned char *p, long len, int section)
     return (1);
 }
 
-int section7(unsigned char *p, long len)
+static int section7(unsigned char *p, long len)
 {
     unsigned char nmb, nps, sec7qrs, *q, *r;
     short i, n, sec7qrs_offset;
@@ -2188,7 +2213,7 @@ int section7(unsigned char *p, long len)
     return (1);
 }
 
-int section8(unsigned char *p, long len)
+static int section8(unsigned char *p, long len)
 {
     int i, n;
 
@@ -2234,7 +2259,7 @@ int section8(unsigned char *p, long len)
     return (1);
 }
 
-int section9(unsigned char *p, long len)
+static int section9(unsigned char *p, long len)
 {
     p += 16; len -= 16; /* move to data area */
 
@@ -2257,9 +2282,9 @@ int section9(unsigned char *p, long len)
     return (1);
 }
 
-int nsecleads;		/* number of leads with measurements in section 10 */
+static int nsecleads;		/* number of leads with measurements in section 10 */
 
-void prval(FILE *ofile, short val)
+static void prval(FILE *ofile, short val)
 {
     if (val == 29999)
 	fprintf(ofile, "  n/comp");	/* not computed (ever) by analyzer */
@@ -2271,7 +2296,7 @@ void prval(FILE *ofile, short val)
 	fprintf(ofile, "%8d", val);
 }
 
-void precgmeas(FILE *ofile)
+static void precgmeas(FILE *ofile)
 {
     int i;
 
@@ -2374,7 +2399,7 @@ void precgmeas(FILE *ofile)
     fprintf(ofile, "\n");
 }
 
-int section10(unsigned char *p, long len)
+static int section10(unsigned char *p, long len)
 {
     int i;
     FILE *ofile;
@@ -2444,7 +2469,7 @@ int section10(unsigned char *p, long len)
     return (1);
 }
 
-int section11(unsigned char *p, long len)
+static int section11(unsigned char *p, long len)
 {
     p += 16; len -= 16; /* move to data area */
 
@@ -2457,8 +2482,7 @@ int section11(unsigned char *p, long len)
     return (1);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

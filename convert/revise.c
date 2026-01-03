@@ -41,9 +41,9 @@ WFDB_FILE *iheader;
 WFDB_Siginfo si[WFDB_MAXSIG];
 WFDB_Time nsamples;
 
-main(argc, argv)
-int argc;
-char *argv[];
+static int readoldheader(char *record, WFDB_Siginfo *siarray);
+
+int main(int argc, char *argv[])
 {
     char *record;
     int nsig;
@@ -62,9 +62,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-int readoldheader(record, siarray)
-char *record;
-WFDB_Siginfo *siarray;
+static int readoldheader(char *record, WFDB_Siginfo *siarray)
 {
     char linebuf[256], *p;
     WFDB_Frequency f;
@@ -72,12 +70,6 @@ WFDB_Siginfo *siarray;
     WFDB_Time ns;
     unsigned int i;
     static char sep[] = " \t\n";
-#ifndef atof
-    double atof();
-#endif
-#ifndef atol
-    long atol();
-#endif
 
     /* Try to open the header file. */
     if ((iheader = wfdb_open("header", record, WFDB_READ)) == NULL) {

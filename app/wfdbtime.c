@@ -27,7 +27,7 @@ _______________________________________________________________________________
 #include <stdio.h>
 #include <wfdb/wfdb.h>
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     char *record = NULL, sbuf[32];
     int i;

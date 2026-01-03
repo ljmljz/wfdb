@@ -118,7 +118,7 @@ long *qfv, *smv;		/* filter buffers allocated by gqrs_init() */
 #define q(T) (qfv[(T)&(BUFLN-1)])
 #define s(T) (smv[(T)&(BUFLN-1)])
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     char *p;
     int gvmode = 0, i, isiglist = 0, j, nisig;
@@ -711,7 +711,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+void help(void)
 {
     int i;
 

@@ -72,135 +72,117 @@ where FILENAME is the name of the input file, and OPTIONS may include:
 
 #include <stdio.h>
 #include <math.h>
-#if defined(__STDC__) || defined(_WINDOWS)
-# include <stdlib.h>
-#else
-# ifdef HAVE_MALLOC_H
-# include <malloc.h>
-# else
-extern char *calloc();
-# endif
-#endif
+#include <stdlib.h>
+#include <string.h>
 
-/* Function types. */
-int load();
-void coherence(), lremv(), fft842();
+/* Function prototypes */
+static int load(double *xx, double *yy, int nnn);
+static void coherence(int nnn, double sfx, double sfy);
+static void lremv(double *xx, int nnn);
+static void fft842(int isign, int n, double *ar, double *ai);
+static void r2tx(int nthpo, double *cr0, double *cr1, double *ci0, double *ci1);
+static void r4tx(int nthpo, double *cr0, double *cr1, double *cr2, double *cr3,
+                 double *ci0, double *ci1, double *ci2, double *ci3);
+static void r8tx(int nx, int nthpo, int length, double *cr0, double *cr1,
+                 double *cr2, double *cr3, double *cr4, double *cr5, double *cr6,
+                 double *cr7, double *ci0, double *ci1, double *ci2, double *ci3,
+                 double *ci4, double *ci5, double *ci6, double *ci7);
+static char *prog_name(char *s);
+static void help(void);
 
-double *xx, *yy, *gxx, *gyy, *gxyre, *gxyim, *phi, *weight;
-double sampfreq = 250.0;
-FILE *ifile = NULL;
-int npfft;	/* points per Fourier transform segment (a power of 2) */
-int vflag;	/* print column headings if non-zero */
+/* Global variables (kept minimal) */
+static double *xx, *yy, *gxx, *gyy, *gxyre, *gxyim, *phi, *weight;
+static double sampfreq = 250.0;
+static FILE *ifile = NULL;
+static int npfft;   /* points per Fourier transform segment (a power of 2) */
+static int vflag;   /* print column headings if non-zero */
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     int i, pps = 1024;
-    double sfx = 1.0, sfy = 1.0, atof();
+    double sfx = 1.0, sfy = 1.0;
 
     for (i = 1; i < argc; i++) {
-	if (*argv[i] == '-') switch (*(argv[i]+1)) {
-	  case 'f':	/* sampling frequency (Hz) follows */
-	    if (++i >= argc || (sampfreq = atof(argv[i])) <= 0.0) {
-		(void)fprintf(stderr,
-			      "%s: sampling frequency (Hz) must follow -f\n",
+        if (*argv[i] == '-') switch (*(argv[i]+1)) {
+          case 'f':   /* sampling frequency (Hz) follows */
+            if (++i >= argc || (sampfreq = atof(argv[i])) <= 0.0) {
+                (void)fprintf(stderr,
+                              "%s: sampling frequency (Hz) must follow -f\n",
 			      argv[0]);
-		exit(1);
-	    }
-	    break;
-	  case 'i':	/* input file name follows */
-	    if (++i >= argc) {
-		(void)fprintf(stderr, "%s: input file name must follow -i\n",
+                exit(1);
+            }
+            break;
+          case 'i':   /* input file name follows */
+            if (++i >= argc) {
+                (void)fprintf(stderr, "%s: input file name must follow -i\n",
 			      argv[0]);
-		exit(1);
-	    }
-	    if (strcmp(argv[i], "-") == 0)
-		ifile = stdin;
-	    else if ((ifile = fopen(argv[i], "r")) == NULL) {
-		(void)fprintf(stderr, "%s: can't open input file %s\n",
+                exit(1);
+            }
+            if (strcmp(argv[i], "-") == 0)
+                ifile = stdin;
+            else if ((ifile = fopen(argv[i], "r")) == NULL) {
+                (void)fprintf(stderr, "%s: can't open input file %s\n",
 			      argv[0], argv[i]);
-		exit(1);
-	    }
-	    break;
-	  case 'n':	/* number of points per segment follows */
-	    if (++i >= argc || (pps = atoi(argv[i])) < 2 || pps > 32768) {
-		(void)fprintf(stderr,
+                exit(1);
+            }
+            break;
+          case 'n':   /* number of points per segment follows */
+            if (++i >= argc || (pps = atoi(argv[i])) < 2 || pps > 32768) {
+                (void)fprintf(stderr,
      "%s: number of points per segment (between 2 and 32768) must follow -n\n",
 			      argv[0]);
-		exit(1);
-	    }
-	    break;
-	  case 'v':	/* print column headings */
-	    vflag = 1;
-	    break;
-	  case 'x':	/* scale factors follow */
-	    if (++i >= argc || (sfx = atof(argv[i])) == 0.0 ||
-		++i >= argc || (sfy = atof(argv[i])) == 0.0) {
-		(void)fprintf(stderr, "%s: scale factors must follow -x\n",
+                exit(1);
+            }
+            break;
+          case 'v':   /* print column headings */
+            vflag = 1;
+            break;
+          case 'x':   /* scale factors follow */
+            if (++i >= argc || (sfx = atof(argv[i])) == 0.0 ||
+                ++i >= argc || (sfy = atof(argv[i])) == 0.0) {
+                (void)fprintf(stderr, "%s: scale factors must follow -x\n",
 			      argv[0]);
-		exit(1);
-	    }
-	    break;
-	  default:
-	    (void)fprintf(stderr, "%s: unrecognized option %s\n",
+                exit(1);
+            }
+            break;
+          default:
+            (void)fprintf(stderr, "%s: unrecognized option %s\n",
 			  argv[0], argv[i]);
-	    exit(1);
-	}
-	else {
-	    (void)fprintf(stderr, "%s: unrecognized argument %s\n",
+            exit(1);
+        }
+        else {
+            (void)fprintf(stderr, "%s: unrecognized argument %s\n",
 			  argv[0],argv[i]);
-	    exit(1);
-	}
+            exit(1);
+        }
     }
     if (ifile == NULL) {
-	(void)fprintf(stderr, "usage: %s -i FILENAME [ OPTIONS ]\n", argv[0]);
-	(void)fprintf(stderr,
-" where FILENAME is the name of the file containing the samples of the two\n");
-	(void)fprintf(stderr,
-" time series arranged in two columns (use `-' for standard input, which\n");
-	(void)fprintf(stderr,
-" may not come from a pipe), and\n");
-	(void)fprintf(stderr, " OPTIONS may include:\n");
-	(void)fprintf(stderr,
-"  -f FREQ    specify sampling frequency in Hz (default: 250)\n");
-	(void)fprintf(stderr,
-"  -n SIZE    specify number of samples per segment (default: 1024)\n");
-	(void)fprintf(stderr,
-"  -v         print column headings\n");
-	(void)fprintf(stderr,
-"  -x SX SY   specify scale factors for the two time series (defaults: 1)\n");
-	(void)fprintf(stderr,
-" The standard output contains five columns: frequency (Hz), coherence,\n");
-	(void)fprintf(stderr,
-" and power cross- and auto-spectral densities (dB).\n");
-	exit(1);
+        help();
+        exit(1);
     }
     
     /* Number of FFT inputs (a power of 2 no less than nnn). */
     for (npfft = 2; npfft < pps; npfft <<= 1)
-	;
+        ;
 
     if ((xx = (double *)calloc(npfft, sizeof(double))) == NULL ||
-	(yy = (double *)calloc(npfft, sizeof(double))) == NULL ||
-	(gxx = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
-	(gyy = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
-	(gxyre = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
-	(gxyim = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
-	(phi = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
-	(weight = (double *)calloc(npfft, sizeof(double))) == NULL) {
-	(void)fprintf(stderr,
-		      "%s: insufficient memory (try again using -n %d)\n",
+        (yy = (double *)calloc(npfft, sizeof(double))) == NULL ||
+        (gxx = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
+        (gyy = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
+        (gxyre = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
+        (gxyim = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
+        (phi = (double *)calloc(npfft/2 + 1, sizeof(double))) == NULL ||
+        (weight = (double *)calloc(npfft, sizeof(double))) == NULL) {
+        (void)fprintf(stderr,
+                      "%s: insufficient memory (try again using -n %d)\n",
 		      argv[0], npfft/2);
-	exit(1);
+        exit(1);
     }
     coherence(pps, sfx, sfy);
     exit(0);
 }
 
-void coherence(nnn, sfx, sfy)
-int nnn;	/* number of points per segment */
-double sfx, sfy;/* scale factors for input data */
+static void coherence(int nnn, double sfx, double sfy)
 {
     double df, dt, sf, temp1, temp2, temp3, temp4;
     int i, nloaded, nd2, nffts;
@@ -210,37 +192,37 @@ double sfx, sfy;/* scale factors for input data */
 
     /* Compute Hanning window. */
     for (i = 0; i < nnn; i++)
-	weight[i] = 0.5*(1 - cos(2.0*M_PI*i/(nnn - 1)));
+        weight[i] = 0.5*(1 - cos(2.0*M_PI*i/(nnn - 1)));
 
     /* Read a pair of segments, and compute and sum their spectra. */
     for (nffts = 0; (nloaded = load(xx, yy, nnn)) > 0; nffts++) {
-	/* Detrend and zero-mean xx[] and yy[]. */
-	lremv(xx, nloaded);
-	lremv(yy, nloaded);
+        /* Detrend and zero-mean xx[] and yy[]. */
+        lremv(xx, nloaded);
+        lremv(yy, nloaded);
 
-	/* Apply Hanning window. */
-	for (i = 0; i < nloaded; i++) {
-	    xx[i] *= weight[i];
-	    yy[i] *= weight[i];
-	}
+        /* Apply Hanning window. */
+        for (i = 0; i < nloaded; i++) {
+            xx[i] *= weight[i];
+            yy[i] *= weight[i];
+        }
 
-	/* Compute forward FFT. */
-	fft842(0, npfft, xx, yy);
+        /* Compute forward FFT. */
+        fft842(0, npfft, xx, yy);
 
-	/* Compute auto- and cross-spectra. */
-	gxx[0] += 4.0 * xx[0] * xx[0];
-	gyy[0] += 4.0 * yy[0] * yy[0];
-	gxyre[0] += 2.0 * xx[0] * yy[0];
-	gxyim[0] = 0.0;
-	for (i = 1; i < nd2; i++) {
-	    double xi = xx[i], xj = xx[npfft-i],
-	           yi = yy[i], yj = yy[npfft-i];
+        /* Compute auto- and cross-spectra. */
+        gxx[0] += 4.0 * xx[0] * xx[0];
+        gyy[0] += 4.0 * yy[0] * yy[0];
+        gxyre[0] += 2.0 * xx[0] * yy[0];
+        gxyim[0] = 0.0;
+        for (i = 1; i < nd2; i++) {
+            double xi = xx[i], xj = xx[npfft-i],
+                   yi = yy[i], yj = yy[npfft-i];
 
-	    gxx[i] += (xi+xj)*(xi+xj) + (yi-yj)*(yi-yj);
-	    gyy[i] += (yi+yj)*(yi+yj) + (xi-xj)*(xi-xj);
-	    gxyre[i] += xi*yj + xj*yi;
-	    gxyim[i] += xj*xj + yj*yj - xi*xi - yi*yi;
-	}
+            gxx[i] += (xi+xj)*(xi+xj) + (yi-yj)*(yi-yj);
+            gyy[i] += (yi+yj)*(yi+yj) + (xi-xj)*(xi-xj);
+            gxyre[i] += xi*yj + xj*yi;
+            gxyim[i] += xj*xj + yj*yj - xi*xi - yi*yi;
+        }
     }
     if (nffts == 0) return;
 
@@ -257,117 +239,109 @@ double sfx, sfy;/* scale factors for input data */
     temp3 = sf  * dt / (2.0 * nnn * nffts);
     temp4 = sf  * dt / (4.0 * nnn * nffts);
     if (vflag)
-	(void)printf(
-		"Freq (Hz)  Coherence    gxy (dB)    gxx (dB)    gyy (dB)\n");
+        (void)printf(
+                "Freq (Hz)  Coherence    gxy (dB)    gxx (dB)    gyy (dB)\n");
     for (i = 0; i < nd2; i++) {
-	gxx[i] *= temp1;
-	gyy[i] *= temp2;
-	gxyre[i] *= temp3;
-	gxyim[i] *= temp4;
-	/* Compute and print magnitude squared coherence (dimensionless), and
-	   cross- and auto-spectra (in dB). */
-	phi[i] = gxyre[i]*gxyre[i] + gxyim[i]*gxyim[i];
-	if (gxx[i] == 0.0 || gyy[i] == 0.0) xx[i] = 1.0;
-	else xx[i] = phi[i] / (gxx[i]*gyy[i]);
-	(void)printf("%9.4lf  %9.4lf  %10.4lf  %10.4lf  %10.4lf\n",
-		     df*i, xx[i],
-		     (phi[i] > 1.0e-10 ? 5.0*log10(phi[i]) : -50.0),
-		     (gxx[i] > 1.0e-10 ? 10.0*log10(gxx[i]) : -100.0),
-		     (gyy[i] > 1.0e-10 ? 10.0*log10(gyy[i]) : -100.0));
+        gxx[i] *= temp1;
+        gyy[i] *= temp2;
+        gxyre[i] *= temp3;
+        gxyim[i] *= temp4;
+        /* Compute and print magnitude squared coherence (dimensionless), and
+           cross- and auto-spectra (in dB). */
+        phi[i] = gxyre[i]*gxyre[i] + gxyim[i]*gxyim[i];
+        if (gxx[i] == 0.0 || gyy[i] == 0.0) xx[i] = 1.0;
+        else xx[i] = phi[i] / (gxx[i]*gyy[i]);
+        (void)printf("%9.4lf  %9.4lf  %10.4lf  %10.4lf  %10.4lf\n",
+                     df*i, xx[i],
+                     (phi[i] > 1.0e-10 ? 5.0*log10(phi[i]) : -50.0),
+                     (gxx[i] > 1.0e-10 ? 10.0*log10(gxx[i]) : -100.0),
+                     (gyy[i] > 1.0e-10 ? 10.0*log10(gyy[i]) : -100.0));
     }
 }
 
 /* This function loads the data arrays. */
-int load(xx, yy, nnn)
-double *xx, *yy;/* arrays to be filled */
-int nnn;	/* number of values to be loaded into each array (<= npfft) */
+static int load(double *xx, double *yy, int nnn)
 {
     int i, nloaded, nd2 = nnn/2;
     static long pos;
 
     (void)fseek(ifile, pos, 0);
     for (i = 0; i < nnn; i++) {
-	if (i == nd2) pos = ftell(ifile);
-	if (fscanf(ifile, "%lf%lf", xx+i, yy+i) != 2) break;
+        if (i == nd2) pos = ftell(ifile);
+        if (fscanf(ifile, "%lf%lf", xx+i, yy+i) != 2) break;
     }
     nloaded = i;
     if (i < npfft) {
-	if (i < nd2) pos = ftell(ifile);
-	for ( ; i < npfft; i++)
-	    *(xx+i) = *(yy+i) = 0.0;
+        if (i < nd2) pos = ftell(ifile);
+        for ( ; i < npfft; i++)
+            *(xx+i) = *(yy+i) = 0.0;
     }
     return (nloaded);
 }
 
 /* This function computes and removes the DC component and the slope of an
    array. */
-void lremv(xx, nnn)
-double *xx;	/* input data array */
-int nnn;	/* number of values in data array */
+static void lremv(double *xx, int nnn)
 {
     int i;
     double fln;
-    double dc;		/* DC component of data */
-    double slope;	/* slope of data */
+    double dc;      /* DC component of data */
+    double slope;   /* slope of data */
 
     dc = slope = 0.0;
     for (i = 0; i < nnn; i++) {
-	dc += xx[i];
-	slope += xx[i]*(i+1);
+        dc += xx[i];
+        slope += xx[i]*(i+1);
     }
     dc /= (double)nnn;
     slope *= 12.0/(nnn*(nnn*(double)nnn-1.0));
     slope -= 6.0*dc/(nnn-1.0);
     fln = dc - 0.5*(nnn+1.0)*slope;
     for (i = 0; i < nnn; i++)
-	xx[i] -= (i+1)*slope + fln;
+        xx[i] -= (i+1)*slope + fln;
 }
 
-void r2tx(nthpo, cr0, cr1, ci0, ci1)
-int nthpo;
-double *cr0, *cr1, *ci0, *ci1;
+static void r2tx(int nthpo, double *cr0, double *cr1, double *ci0, double *ci1)
 {
     int i;
     double temp;
 
     for (i = 0; i < nthpo; i += 2) {
-	temp = cr0[i] + cr1[i];	cr1[i] = cr0[i] - cr1[i]; cr0[i] = temp;
-	temp = ci0[i] + ci1[i];	ci1[i] = ci0[i] - ci1[i]; ci0[i] = temp;
+        temp = cr0[i] + cr1[i]; cr1[i] = cr0[i] - cr1[i]; cr0[i] = temp;
+        temp = ci0[i] + ci1[i]; ci1[i] = ci0[i] - ci1[i]; ci0[i] = temp;
     }
 }
 
-void r4tx(nthpo, cr0, cr1, cr2, cr3, ci0, ci1, ci2, ci3)
-int nthpo;
-double *cr0, *cr1, *cr2, *cr3, *ci0, *ci1, *ci2, *ci3;
+static void r4tx(int nthpo, double *cr0, double *cr1, double *cr2, double *cr3,
+                 double *ci0, double *ci1, double *ci2, double *ci3)
 {
     int i;
     double i1, i2, i3, i4, r1, r2, r3, r4;
 
     for (i = 0; i < nthpo; i += 4) {
-	r1 = cr0[i] + cr2[i];
-	r2 = cr0[i] - cr2[i];
-	r3 = cr1[i] + cr3[i];
-	r4 = cr1[i] - cr3[i];
-	i1 = ci0[i] + ci2[i];
-	i2 = ci0[i] - ci2[i];
+        r1 = cr0[i] + cr2[i];
+        r2 = cr0[i] - cr2[i];
+        r3 = cr1[i] + cr3[i];
+        r4 = cr1[i] - cr3[i];
+        i1 = ci0[i] + ci2[i];
+        i2 = ci0[i] - ci2[i];
         i3 = ci1[i] + ci3[i];
-	i4 = ci1[i] - ci3[i];
-	cr0[i] = r1 + r3;
-	ci0[i] = i1 + i3;
-	cr1[i] = r1 - r3;
-	ci1[i] = i1 - i3;
-	cr2[i] = r2 - i4;
-	ci2[i] = i2 + r4;
-	cr3[i] = r2 + i4;
-	ci3[i] = i2 - r4;
+        i4 = ci1[i] - ci3[i];
+        cr0[i] = r1 + r3;
+        ci0[i] = i1 + i3;
+        cr1[i] = r1 - r3;
+        ci1[i] = i1 - i3;
+        cr2[i] = r2 - i4;
+        ci2[i] = i2 + r4;
+        cr3[i] = r2 + i4;
+        ci3[i] = i2 - r4;
     }
 }
 
-void r8tx(nx, nthpo, length, cr0, cr1, cr2, cr3, cr4, cr5, cr6, cr7, ci0, ci1,
-	  ci2, ci3, ci4, ci5, ci6, ci7)
-int nx, nthpo, length;
-double *cr0, *cr1, *cr2, *cr3, *cr4, *cr5, *cr6, *cr7;
-double *ci0, *ci1, *ci2, *ci3, *ci4, *ci5, *ci6, *ci7;
+static void r8tx(int nx, int nthpo, int length, double *cr0, double *cr1,
+                 double *cr2, double *cr3, double *cr4, double *cr5, double *cr6,
+                 double *cr7, double *ci0, double *ci1, double *ci2, double *ci3,
+                 double *ci4, double *ci5, double *ci6, double *ci7)
 {
     double scale = 2.0*M_PI/length, arg, tr, ti;
     double c1, c2, c3, c4, c5, c6, c7;
@@ -379,22 +353,22 @@ double *ci0, *ci1, *ci2, *ci3, *ci4, *ci5, *ci6, *ci7;
     int j, k;
 
     for (j = 0; j < nx; j++) {
-	arg = j*scale;
-	c1 = cos(arg);
-	s1 = sin(arg);
-	c2 = c1*c1 - s1*s1;
-	s2 = 2.0*c1*s1;
-	c3 = c1*c2 - s1*s2;
-	s3 = c2*s1 + s2*c1;
-	c4 = c2*c2 - s2*s2;
-	s4 = 2.0*c2*s2;
-	c5 = c2*c3 - s2*s3;
-	s5 = c3*s2 + s3*c2;
-	c6 = c3*c3 - s3*s3;
-	s6 = 2.0*c3*s3;
-	c7 = c3*c4 - s3*s4;
-	s7 = c4*s3 + s4*c3;
-	for (k = j; k < nthpo; k += length) {
+        arg = j*scale;
+        c1 = cos(arg);
+        s1 = sin(arg);
+        c2 = c1*c1 - s1*s1;
+        s2 = 2.0*c1*s1;
+        c3 = c1*c2 - s1*s2;
+        s3 = c2*s1 + s2*c1;
+        c4 = c2*c2 - s2*s2;
+        s4 = 2.0*c2*s2;
+        c5 = c2*c3 - s2*s3;
+        s5 = c3*s2 + s3*c2;
+        c6 = c3*c3 - s3*s3;
+        s6 = 2.0*c3*s3;
+        c7 = c3*c4 - s3*s4;
+        s7 = c4*s3 + s4*c3;
+        for (k = j; k < nthpo; k += length) {
 	    ar0 = cr0[k] + cr4[k];	ar4 = cr0[k] - cr4[k];
 	    ar1 = cr1[k] + cr5[k];	ar5 = cr1[k] - cr5[k];
 	    ar2 = cr2[k] + cr6[k];	ar6 = cr2[k] - cr6[k];
@@ -458,15 +432,12 @@ double *ci0, *ci1, *ci2, *ci3, *ci4, *ci5, *ci6, *ci7;
 		ci6[k] = bi6 + ti;
 		cr7[k] = br6 - tr;
 		ci7[k] = bi6 - ti;
-	    }
-	}
+        }
     }
 }
+}
 
-void fft842(in, n, x, y)
-int in;		/* 0: forward FFT; non-zero: inverse FFT */
-int n;		/* number of points */
-double *x, *y;	/* arrays of points */
+static void fft842(int in, int n, double *x, double *y)
 {
     double temp;
     int i, j, ij, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13, j14,
@@ -478,7 +449,7 @@ double *x, *y;	/* arrays of points */
     if (n != nt) {
 	(void)fprintf(stderr, "fft842: %d is not a power of 2\n", n);
 	exit(2);
-    }
+        }
     n8pow = n2pow/3;
     if (in == 0) {
 	for (i = 0; i < n; i++)
@@ -531,9 +502,39 @@ double *x, *y;	/* arrays of points */
 	    y[i] = -y[i];
     }
     else {
-	for (i = 0; i < n; i++) {
-	    x[i] /= (double)n;
-	    y[i] /= (double)n;
-	}
+        for (i = 0; i < n; i++) {
+            x[i] /= (double)n;
+            y[i] /= (double)n;
+        }
     }
+}
+
+static char *prog_name(char *s)
+{
+    char *p = strrchr(s, '/');
+    return (p ? p + 1 : s);
+}
+
+static void help(void)
+{
+    (void)fprintf(stderr, "usage: coherence -i FILENAME [ OPTIONS ]\n");
+    (void)fprintf(stderr,
+" where FILENAME is the name of the file containing the samples of the two\n");
+    (void)fprintf(stderr,
+" time series arranged in two columns (use `-' for standard input, which\n");
+    (void)fprintf(stderr,
+" may not come from a pipe), and\n");
+    (void)fprintf(stderr, " OPTIONS may include:\n");
+    (void)fprintf(stderr,
+"  -f FREQ    specify sampling frequency in Hz (default: 250)\n");
+    (void)fprintf(stderr,
+"  -n SIZE    specify number of samples per segment (default: 1024)\n");
+    (void)fprintf(stderr,
+"  -v         print column headings\n");
+    (void)fprintf(stderr,
+"  -x SX SY   specify scale factors for the two time series (defaults: 1)\n");
+    (void)fprintf(stderr,
+" The standard output contains five columns: frequency (Hz), coherence,\n");
+    (void)fprintf(stderr,
+" and power cross- and auto-spectral densities (dB).\n");
 }

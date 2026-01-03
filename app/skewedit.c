@@ -28,15 +28,13 @@ _______________________________________________________________________________
 #include <wfdb/wfdb.h>
 
 static int nskews, *skew;
+static void skewedit(char *record, FILE *hfile);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     char buf[256], *hfname, *p;
     FILE *hfile;
     int i;
-    void skewedit();
 
     if (argc < 3) {
 	fprintf(stderr, "usage: %s record skew0 [skew1 ... skewN]\n", argv[0]);
@@ -106,9 +104,7 @@ char *argv[];
     exit(0);
 }
 
-void skewedit(record, hfile)
-char *record;
-FILE *hfile;
+static void skewedit(char *record, FILE *hfile)
 {
     char buf[256], tmpfname[20], hfname[20], *p;
     int i = 0;

@@ -24,15 +24,16 @@ _______________________________________________________________________________
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 
 #define EDFMAXBLOCK	61440	/* maximum data block length, in bytes */
 
-char *pname;
+static char *prog_name(const char *s);
+static void help(void);
 
-main(argc, argv)
-int argc;
-char **argv;
+int main(int argc, char **argv)
 {
     char buf[100];
     char *header, *ofname = NULL, *p, *block, **blockp, *record = NULL;
@@ -46,7 +47,7 @@ char **argv;
     WFDB_Siginfo *si;
     static char *month_name[] = {  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
 				   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
-    void help();
+    const char *pname;
 
     /* Interpret the command line. */
     pname = argv[0];
@@ -146,7 +147,7 @@ char **argv;
 						   per minute, divided by 60 */
     frames_per_block = 10 * frames_per_second + 0.5;	/* ten seconds */
     bytes_per_block = 2 * samples_per_frame * frames_per_block;
-    				   /* EDF specifies 2 bytes per sample */
+				   /* EDF specifies 2 bytes per sample */
     while (bytes_per_block > EDFMAXBLOCK) {
 	/* blocks would be too long -- reduce their length by a factor of 10 */
 	frames_per_block /= 10;
@@ -439,6 +440,15 @@ char **argv;
     exit(0);
 }
 
+static char *prog_name(const char *s)
+{
+    const char *p = s + strlen(s);
+
+    while (p >= s && *p != '/')
+	p--;
+    return (char *)(p+1);
+}
+
 static char *help_strings[] = {
  "usage: %s -r RECORD [OPTIONS ...]\n",
  "where RECORD is the name of the input record, and OPTIONS may include:",
@@ -452,9 +462,10 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
+    const char *pname = prog_name("mit2edf");
 
     (void)fprintf(stderr, help_strings[0], pname);
     for (i = 1; help_strings[i] != NULL; i++)

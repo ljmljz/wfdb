@@ -73,6 +73,8 @@ wfdb2mat.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #include <wfdb/wfdb.h>
 
@@ -83,20 +85,59 @@ wfdb2mat.
 #define MAT16 3	/* 16 bits per sample signed */
 #define	MAT32 5	/* 32 bits per sample signed */
 
-char *pname;
+static char *help_strings[] = {
+ "usage: %s -r RECORD [OPTIONS ...]\n",
+ "where RECORD is the name of the input record, and OPTIONS may include:",
+ " -f TIME     begin at specified time",
+ " -h          print this usage summary",
+ " -H          read multifrequency signals in high resolution mode",
+ " -l INTERVAL truncate output after the specified time interval (hh:mm:ss)",
+ " -s SIGNAL   [SIGNAL ...]  convert only the specified signal(s)",
+ " -S SIGNAL   search for a valid sample of the specified SIGNAL at or after",
+ "		the time specified with -f, and begin converting then",
+ " -t TIME     stop at specified time",
+"Outputs are written to the current directory as RECORD.mat and RECORDm.hea.",
+NULL
+};
 
-main(argc, argv)
-int argc;
-char *argv[];
+static void help(const char *pname)
 {
-    char *matname, *orec, *p, *q, *record = NULL, *search = NULL, *prog_name();
+    int i;
+
+    (void)fprintf(stderr, help_strings[0], pname);
+    for (i = 1; help_strings[i] != NULL; i++)
+	(void)fprintf(stderr, "%s\n", help_strings[i]);
+}
+
+static char *prog_name(const char *s)
+{
+    const char *p = s + strlen(s);
+
+#ifdef MSDOS
+    while (p >= s && *p != '\\' && *p != ':') {
+	if (*p == '.')
+	    *(char *)p = '\0';		/* strip off extension */
+	if ('A' <= *p && *p <= 'Z')
+	    *(char *)p += 'a' - 'A';	/* convert to lower case */
+	p--;
+    }
+#else
+    while (p >= s && *p != '/')
+	p--;
+#endif
+    return (char *)(p+1);
+}
+
+int main(int argc, char *argv[])
+{
+    char *matname, *orec, *p, *q, *record = NULL, *search = NULL;
 
     /* The entire file is composed of:
        - 128 byte descriptive text
        - 8 byte master tag. 4 bytes indicate data type = matrix, 4
          bytes indicate data size.
        - 4 subelements. Each subelement has a 4 byte tag giving the
-         data type of the elements, a 4 byte tag giving the subelement
+         data type of the elements, a 4 byte tag giving the subelement's
          size, and the subelement's actual content.
          - Subelement 1: array flags (8 + 8 bytes)
          - Subelement 2: array dimension (8 + 8 bytes)
@@ -124,9 +165,8 @@ char *argv[];
     WFDB_Sample *vi, *vo;
     WFDB_Siginfo *si, *so;
     WFDB_Time from = 0L, maxl = 0L, t, to = 0L, lower, upper;
-    void help();
+    const char *pname = prog_name(argv[0]);
 
-    pname = prog_name(argv[0]);
     for (i = 1 ; i < argc; i++) {
 	if (*argv[i] == '-') switch (*(argv[i]+1)) {
 	  case 'f':	/* starting time */
@@ -137,7 +177,7 @@ char *argv[];
 	    from = i;
 	    break;
 	  case 'h':	/* help requested */
-	    help();
+	    help(pname);
 	    exit(0);
 	    break;
 	  case 'H':	/* select high-resolution mode */
@@ -200,7 +240,7 @@ char *argv[];
 	}
     }
     if (record == NULL) {
-	help();
+	help(pname);
 	exit(1);
     }
     if ((nisig = isigopen(record, NULL, 0)) <= 0) exit(2);
@@ -292,7 +332,7 @@ char *argv[];
     if (*p == '/')	/* short form name ('rec/' rather than 'rec/rec') */
 	sfname = 1;
     while (--p > record)
-	if (*p == '/') { p++; break; }  /* omit path components from orec */
+	if (*p == '/') { p++; break; }	/* omit path components from orec */
     SUALLOC(orec, strlen(p)+2, sizeof(char));
     strncpy(orec, p, strlen(p) - sfname);
     /* If the input record is an EDF file, it will have a '.' in its name.
@@ -364,14 +404,9 @@ char *argv[];
 	exit(1);
     }
 
-    nbytesofdata = nbytesperelement*nosig*(to-from);   /* Bytes of actual data */
-    lremain = nbytesofdata%8; /* This is the remaining no. bytes that
-				 don't fit into integer multiple of
-				 8. ie if 18 bytes, lremain=2, from 17
-				 to 18. */
+    nbytesofdata = nbytesperelement*nosig*(to-from);
+    lremain = nbytesofdata%8;
 
-    /* nbytesmaster= (8 + 8) + (8 + 8) + (8 + 8) + (8 + nbytesofdata) + padding.
-       Must be integer multiple 8. */
     if (lremain==0){
 	nbytesmaster = nbytesofdata + 56;
     }
@@ -387,70 +422,47 @@ char *argv[];
 	exit(1);
     }
     
-    /* Fill in the .mat file's prolog and write it. (Elements of prolog[]
-       not set explicitly below are always zero.)  */
+    /* Fill in the .mat file's prolog and write it. */
 
-    /* Start with 128 byte header */
-    sprintf(prolog, "MATLAB 5.0");  /* First 116 bits are descriptive text */
-    prolog[124] = fieldversion & 0xff; /* Bytes 125-126 indicate version,
-					  set to 0x0100 hex = 256.*/
+    sprintf(prolog, "MATLAB 5.0");
+    prolog[124] = fieldversion & 0xff;
     prolog[125] = (fieldversion >> 8) & 0xff;
-    sprintf(prolog + 126, "I");   /* Characters IM to indicate little endian */
+    sprintf(prolog + 126, "I");
     sprintf(prolog + 127, "M");
 
-    /* 8 byte MASTER TAG, followed by the actual data.
-       First 4 is data type, next 4 is number of bytes of entire field. */
-    prolog[128] = mastertype & 0xff; /* Data type is always 14 for matrix. */
-    /* Number of bytes of data element
-       = (8 + 8) + (8 + 8) + (8 + 8) + (8 + Nvalues*bytespervalue)
-       = 56 + Nvalues*bytespervalue */
+    prolog[128] = mastertype & 0xff;
     prolog[132] = nbytesmaster & 0xff;
     prolog[133] = (nbytesmaster >> 8) & 0xff;
     prolog[134] = (nbytesmaster >> 16) & 0xff;
     prolog[135] = (nbytesmaster >> 24) & 0xff;
 
-    /* Matrix data has 4 subelements (5 if imag):
-       Array flags, dimensions array, array name, real part.
-       Each subelement has its own subtag, and subdata. */
+    prolog[136] = (sub1type & 0xff);
+    prolog[140] = 8 & 0xff;
+    prolog[144] = sub1class & 0xff;
 
-    /* Subelement 1: Array flags. */
-    prolog[136] = (sub1type & 0xff); /* Sub tag 1: type */
-    prolog[140] = 8 & 0xff; /* Sub tag 1: size */
-    prolog[144] = sub1class & 0xff; /*Value class, indicating the MATLAB
-				      data type. NOT the same as sub4type. */
-
-    /* Subelement 2: Rows and Cols */
-    prolog[152] = sub2type & 0xff;  /* Sub tag 2: type */
-    prolog[156] = 8 & 0xff; /* sub tag 2: size */
-    prolog[160] = nosig & 0xff;  /* Number of signals. */
+    prolog[152] = sub2type & 0xff;
+    prolog[156] = 8 & 0xff;
+    prolog[160] = nosig & 0xff;
     prolog[161] = (nosig >> 8) & 0xff;
     prolog[162] = (nosig >> 16) & 0xff;
     prolog[163] = (nosig >> 24) & 0xff;
-    prolog[164] = (to - from) & 0xff;   /* Value nrows. */
+    prolog[164] = (to - from) & 0xff;
     prolog[165] = ((to - from) >> 8) & 0xff;
     prolog[166] = ((to - from) >> 16) & 0xff;
     prolog[167] = ((to - from) >> 24) & 0xff;
 
-    /* Subelement 3: Array Name */
     prolog[168] = sub3type & 0xff;
     prolog[172] = 3 & 0xff;
     sprintf(prolog + 176, "val");
 
-    /* Subelement 4: Data itself */
     prolog[184] = sub4type & 0xff;
     prolog[188] = nbytesofdata & 0xff;
     prolog[189] = (nbytesofdata >> 8) & 0xff;
     prolog[190] = (nbytesofdata >> 16) & 0xff;
     prolog[191] = (nbytesofdata >> 24) & 0xff;
 
-    /* Total size of everything before actual data:
-       128 byte header
-       + 8 byte master tag
-       + 56 byte Subelements (48 byte default + 8 byte name)
-       = 192. */
     wfdbputprolog((char *)prolog, 192, 0);
 
-    /* Copy the selected data into the .mat file. */
     for (t = from; t < to && stat >= 0; t++) {
 	stat = getvec(vi);
 	for (i = 0; i < nosig; i++)
@@ -459,7 +471,6 @@ char *argv[];
 	    break;
     }
 
-    /* If the input ended prematurely, pad the matrix with invalid samples. */
     if (t != to) {
 	fprintf(stderr,
 		"%s (warning): final %"WFDB_Pd_TIME" columns are invalid\n",
@@ -470,19 +481,17 @@ char *argv[];
 	    putvec(vo);
     }
 
-    /* Create the new header file. */
     setsampfreq(freq);
     p = mstimstr(-from);
     if (p && *p == '[')
 	setbasetime(p+1);
     newheader(orec);
 
-    /* Copy info from the old record, if any */
     if (p = getinfo(NULL))
 	do {
 	    (void)putinfo(p);
 	} while (p = getinfo((char *)NULL));
-    /* Append additional info summarizing what wfdb2mat has done. */
+
     SUALLOC(p, strlen(record)+80, 1);
     (void)sprintf(p, "Creator: %s", pname);
     (void)putinfo(p);
@@ -495,14 +504,11 @@ char *argv[];
     }
     (void)putinfo(p);
 
-    /* Determine offset between sample values and the raw byte/word
-       values as interpreted by Matlab/Octave. */
     if (wfdbtype == 80)
 	offset = 128;
     else
 	offset = 0;
 
-    /* Summarize the contents of the .mat file. */
     printf("%s\n", p);
     printf("val has %d row%s (signal%s) and "
 	   "%"WFDB_Pd_TIME" column%s (sample%s/signal)\n",
@@ -523,48 +529,4 @@ char *argv[];
     wfdbquit();
 
     exit(0);	/*NOTREACHED*/
-}
-
-char *prog_name(s)
-char *s;
-{
-    char *p = s + strlen(s);
-
-#ifdef MSDOS
-    while (p >= s && *p != '\\' && *p != ':') {
-	if (*p == '.')
-	    *p = '\0';		/* strip off extension */
-	if ('A' <= *p && *p <= 'Z')
-	    *p += 'a' - 'A';	/* convert to lower case */
-	p--;
-    }
-#else
-    while (p >= s && *p != '/')
-	p--;
-#endif
-    return (p+1);
-}
-
-static char *help_strings[] = {
- "usage: %s -r RECORD [OPTIONS ...]\n",
- "where RECORD is the name of the input record, and OPTIONS may include:",
- " -f TIME     begin at specified time",
- " -h          print this usage summary",
- " -H          read multifrequency signals in high resolution mode",
- " -l INTERVAL truncate output after the specified time interval (hh:mm:ss)",
- " -s SIGNAL   [SIGNAL ...]  convert only the specified signal(s)",
- " -S SIGNAL   search for a valid sample of the specified SIGNAL at or after",
- "		the time specified with -f, and begin converting then",
- " -t TIME     stop at specified time",
-"Outputs are written to the current directory as RECORD.mat and RECORDm.hea.",
-NULL
-};
-
-void help()
-{
-    int i;
-
-    (void)fprintf(stderr, help_strings[0], pname);
-    for (i = 1; help_strings[i] != NULL; i++)
-	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }

@@ -34,11 +34,8 @@ Numerical Recipes in C: the Art of Scientific Computing (Cambridge Univ. Press,
 
 #include <stdio.h>
 #include <math.h>
-#ifdef __STDC__
 #include <stdlib.h>
-#else
-extern void exit();
-#endif
+#include <string.h>
 
 #ifndef BSD
 # include <string.h>
@@ -54,14 +51,42 @@ extern void exit();
 #define PI	M_PI	/* pi to machine precision, defined in math.h */
 #define TWOPI	(2.0*PI)
 
-void four1();
-void realft();
+/* Function prototypes */
+static double win_bartlett(int i, int n);
+static double win_blackman(int i, int n);
+static double win_blackman_harris(int i, int n);
+static double win_hamming(int i, int n);
+static double win_hanning(int i, int n);
+static double win_parzen(int i, int n);
+static double win_square(int i, int n);
+static double win_welch(int i, int n);
+static char *prog_name(char *s);
+static void help(void);
+static void four1(float data[], int nn, int isign);
+static void realft(float data[], int n, int isign);
+static void read_input(void);
+static void fft(void);
+static void ifft(void);
+static void fft_out(void);
+static long input(void);
 
-double wsum;
+/* Global variables (kept minimal) */
+static int m, n;
+static char *pname;
+static FILE *ifile;
+static float *c;
+static double freq, fstep, norm, rmean;
+static double wsum, rsum;
+static double (*window)(int, int);
+static long nchunks;
+static int wflag, zflag;
+static int cflag, fflag, iflag, pflag, Pflag;
+static int nflag, Nflag;
+static long len = LEN;
+static long smooth = 1, decimation = 1;
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 241 (1st ed.) */
-double win_bartlett(j, n)
-int j, n;
+static double win_bartlett(int j, int n)
 {
     double a = 2.0/(n-1), w;
 
@@ -71,8 +96,7 @@ int j, n;
 }
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 242 (1st ed.) */
-double win_blackman(j, n)
-int j, n;
+static double win_blackman(int j, int n)
 {
     double a = 2.0*PI/(n-1), w;
 
@@ -83,8 +107,7 @@ int j, n;
 
 /* See Harris, F.J., "On the use of windows for harmonic analysis with the
    discrete Fourier transform", Proc. IEEE, Jan. 1978 */
-double win_blackman_harris(j, n)
-int j, n;
+static double win_blackman_harris(int j, int n)
 {
     double a = 2.0*PI/(n-1), w;
 
@@ -94,8 +117,7 @@ int j, n;
 }
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 242 (1st ed.) */
-double win_hamming(j, n)
-int j, n;
+static double win_hamming(int j, int n)
 {
     double a = 2.0*PI/(n-1), w;
 
@@ -106,8 +128,7 @@ int j, n;
 
 /* See Oppenheim & Schafer, Digital Signal Processing, p. 242 (1st ed.)
    The second edition of Numerical Recipes calls this the "Hann" window. */
-double win_hanning(j, n)
-int j, n;
+static double win_hanning(int j, int n)
 {
     double a = 2.0*PI/(n-1), w;
 
@@ -118,8 +139,7 @@ int j, n;
 
 /* See Press, Flannery, Teukolsky, & Vetterling, Numerical Recipes in C,
    p. 442 (1st ed.) */
-double win_parzen(j, n)
-int j, n;
+static double win_parzen(int j, int n)
 {
     double a = (n-1)/2.0, w;
 
@@ -130,8 +150,7 @@ int j, n;
 }
 
 /* See any of the above references. */
-double win_square(j, n)
-int j, n;
+static double win_square(int j, int n)
 {
     wsum += 1.0;
     return (1.0);
@@ -139,8 +158,7 @@ int j, n;
 
 /* See Press, Flannery, Teukolsky, & Vetterling, Numerical Recipes in C,
    p. 442 (1st ed.) or p. 554 (2nd ed.) */
-double win_welch(j, n)
-int j, n;
+static double win_welch(int j, int n)
 {
     double a = (n-1)/2.0, w;
 
@@ -150,35 +168,9 @@ int j, n;
     return (w);
 }
 
-char *pname;
-double rsum;
-FILE *ifile;
-int m, n;
-int cflag;
-int decimation = 1;
-int iflag;
-int fflag;
-int len = LEN;
-int nflag;
-int Nflag;
-int nchunks;
-int pflag;
-int Pflag;
-int smooth = 1;
-int wflag;
-int zflag;
-static float *c;
-double freq, fstep, norm, rmean, (*window)();
-
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    int i;
-    char *prog_name();
-    double atof();
-    void help();
-
+    int i = 0;
     pname = prog_name(argv[0]);
     if (--argc < 1) {
 	help();
@@ -192,10 +184,10 @@ char *argv[];
     }
     for (i = 1; i < argc; i++) {
 	if (*argv[i] == '-') switch (*(argv[i]+1)) {
-	  case 'c':	/* print complex FFT (rectangular form) */
+	  case 'c':	/* print complex spectrum */
 	    cflag = 1;
 	    break;
-	  case 'f':	/* print frequencies */
+	  case 'f':	/* sampling frequency in Hz */
 	    if (++i >= argc) {
 		fprintf(stderr, "%s: sampling frequency must follow -f\n",
 			pname);
@@ -451,9 +443,7 @@ char *argv[];
 
 /* This function detrends (subtracts a least-squares fitted line from) a
    a sequence of n uniformily spaced ordinates supplied in c. */
-detrend(c, n)
-float *c;
-int n;
+static void detrend(float *c, int n)
 {
     int i;
     double a, b = 0.0, tsqsum = 0.0, ysum = 0.0, t;
@@ -475,7 +465,7 @@ int n;
 		pname);
 }
 
-read_input()
+static void read_input()
 {
     if (zflag)
 	for (n = 0, rsum = 0.; n < len && fscanf(ifile, "%f", &c[n]) == 1; n++)
@@ -485,7 +475,7 @@ read_input()
 	    ;
 }
 
-fft()		/* calculate forward FFT */
+static void fft()		/* calculate forward FFT */
 {
     int i;
 
@@ -514,7 +504,7 @@ fft()		/* calculate forward FFT */
     realft(c-1, m/2, 1);	/* perform the FFT;  see Numerical Recipes */
 }
 
-fft_out()	/* print the FFT */
+static void fft_out()	/* print the FFT */
 {
     int i;
 
@@ -538,7 +528,7 @@ fft_out()	/* print the FFT */
     }
 }
 
-ifft()		/* calculate and print inverse FFT */
+static void ifft()		/* calculate and print inverse FFT */
 {
     int i;
 
@@ -564,8 +554,7 @@ ifft()		/* calculate and print inverse FFT */
 	    printf("%g\n", c[i]/(n/2.0));
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -642,14 +631,11 @@ void help()
     }
 }
 
-void realft(data,n,isign)
-float data[];
-int n,isign;
+void realft(float data[], int n, int isign)
 {
     int i, i1, i2, i3, i4, n2p3;
     float c1 = 0.5, c2, h1r, h1i, h2r, h2i;
     double wr, wi, wpr, wpi, wtemp, theta;
-    void four1();
 
     theta = PI/(double) n;
     if (isign == 1) {
@@ -689,9 +675,7 @@ int n,isign;
     }
 }
 
-void four1(data, nn, isign)
-float data[];
-int nn, isign;
+void four1(float data[], int nn, int isign)
 {
     int n, mmax, m, j, istep, i;
     double wtemp, wr, wpr, wpi, wi, theta;

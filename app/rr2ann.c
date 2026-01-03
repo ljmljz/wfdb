@@ -46,21 +46,20 @@ extern void exit();
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgcodes.h>
 
-char *pname;
+static char *pname;
+static char *prog_name(char *s);
+static void help(void);
 
-main(argc, argv)	
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     static WFDB_Anninfo ai;
     static WFDB_Annotation annot;
     WFDB_Frequency sps = 0.0;
     double rr, t = 0.0, xfactor = 1.0;
     static char line[MAXLINELEN];
-    char annstr[10], *p, *record = NULL, *prog_name();
+    char annstr[10], *p, *record = NULL;
     int i, Tflag = 0, wflag = 0;
-    void help();
-    extern double atof();
+    // extern double atof();
 
     pname = prog_name(argv[0]);
 
@@ -173,8 +172,7 @@ char *argv[];
     exit(0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -216,7 +214,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

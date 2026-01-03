@@ -35,6 +35,7 @@ program `ad2m.c' can perform the reverse conversion, however.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #ifndef __STDC__
 #ifndef MSDOS
 extern void exit();
@@ -46,16 +47,15 @@ extern void exit();
 #define EODF	0100000	/* AHA data file end-of-data marker */
 #define NSAMP	525000L	/* default number of samples per signal */
 
-char *pname;
+static char *prog_name(const char *s);
+static void help(void);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char *nrec = NULL, *ofname, *record = NULL, *prog_name();
+    char *nrec = NULL, *ofname, *record = NULL;
     int i, nsig, x[WFDB_MAXSIG];
     static WFDB_Siginfo s[WFDB_MAXSIG];
-    void help();
+    const char *pname;
 
     pname = prog_name(argv[0]);
     for (i = 1; i < argc; i++) {
@@ -142,24 +142,23 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(const char *s)
 {
-    char *p = s + strlen(s);
+    const char *p = s + strlen(s);
 
 #ifdef MSDOS
     while (p >= s && *p != '\\' && *p != ':') {
 	if (*p == '.')
-	    *p = '\0';		/* strip off extension */
+	    *(char *)p = '\0';		/* strip off extension */
 	if ('A' <= *p && *p <= 'Z')
-	    *p += 'a' - 'A';	/* convert to lower case */
+	    *(char *)p += 'a' - 'A';	/* convert to lower case */
 	p--;
     }
 #else
     while (p >= s && *p != '/')
 	p--;
 #endif
-    return (p+1);
+    return (char *)(p+1);
 }
 
 static char *help_strings[] = {
@@ -172,9 +171,10 @@ static char *help_strings[] = {
     NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
+    const char *pname = prog_name("md2a");
 
     (void)fprintf(stderr, help_strings[0], pname);
     for (i = 1; help_strings[i] != NULL; i++)

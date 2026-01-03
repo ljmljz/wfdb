@@ -43,13 +43,14 @@ _______________________________________________________________________________
  "<!DOCTYPE wfdbsampleset PUBLIC \"-//PhysioNet//DTD WFDB 1.0//EN\"" \
  " \"http://physionet.org/physiobank/database/XML/wfdb.dtd\">\n"
 
-char *pname;
+static char *pname;
+static char *prog_name(char *s);
+static char *escapify(char *s);
+static void help(void);
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char *record = NULL, *search = NULL, *escapify(), *prog_name();
+    char *record = NULL, *search = NULL;
     char *invalid, *snfmt, *tfmt, *tnfmt, *tufmt, *vfmt, speriod[16],
 	tustr[21];
     int cflag = 0, highres = 0, i, isiglist, nsig, nosig = 0, pflag = 0, s,
@@ -58,7 +59,6 @@ char *argv[];
     WFDB_Sample *v;
     WFDB_Siginfo *si;
     WFDB_Time from = 0L, maxl = 0L, to = 0L;
-    void help();
 
     pname = prog_name(argv[0]);
     for (i = 1 ; i < argc; i++) {
@@ -453,7 +453,7 @@ char *argv[];
     exit(0);
 }
 
-char *escapify(char *s)
+static char *escapify(char *s)
 {
     char *p = s, *q = s, *r;
     int c = 0;
@@ -474,8 +474,7 @@ char *escapify(char *s)
     return (q);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -521,7 +520,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

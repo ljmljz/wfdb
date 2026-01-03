@@ -63,12 +63,16 @@ WFDB_Frequency sfreq;
 WFDB_Siginfo *si;
 WFDB_Time from = 0L, to = 0L, t;
 
+static char *prog_name(char *s);
+static void help(void);
+static int ampcmp(double *p1, double *p2);
+
 main(int argc, char **argv)
 {
-    char *p, *record = NULL, *prog_name(char *s);
+    char *p, *record = NULL;
     int gvmode = 0, i, j, jlow, jhigh, nmax = NMAX,
-	ampcmp(), getptp(WFDB_Time t), getrms(WFDB_Time t);
-    void help(void), printamp(WFDB_Time t);
+	getptp(WFDB_Time t), getrms(WFDB_Time t);
+    void printamp(WFDB_Time t);
 
     /* Interpret command-line arguments. */
     pname = prog_name(argv[0]);
@@ -279,7 +283,7 @@ main(int argc, char **argv)
 	for (i = 0; i < nsig; i++) {
 	    double a;
 
-	    qsort((char*)amp[i], namp, sizeof(double), ampcmp);
+	    qsort((char*)amp[i], namp, sizeof(double), (int (*)(const void *, const void *))ampcmp);
 	    for (a = 0.0, j = jlow; j < jhigh; j++)
 		a += amp[i][j];
 	    a /= jhigh - jlow;
@@ -376,14 +380,14 @@ void printamp(WFDB_Time t)
     (void)printf("\n");
 }
 
-int ampcmp(double *p1, double *p2)
+static int ampcmp(double *p1, double *p2)
 {
     if (*p1 > *p2) return (1);
     else if (*p1 == *p2) return (0);
     else return (-1);
 }
 
-char *prog_name(char *s)
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -434,7 +438,7 @@ void help(void)
 {
     int i;
 
-    (void)fprintf(stderr, help_strings[0], pname);
+    fprintf(stderr, help_strings[0], pname);
     for (i = 1; help_strings[i] != NULL; i++)
-	(void)fprintf(stderr, "%s\n", help_strings[i]);
+	fprintf(stderr, "%s\n", help_strings[i]);
 }

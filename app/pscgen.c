@@ -35,9 +35,7 @@ are interpreted as for `rdann'.
 #include <wfdb/wfdb.h>
 #include <wfdb/ecgmap.h>
 
-main(argc, argv)	
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     static char *record, *ts, save_aux[255];
     int delay_ann, i, j;

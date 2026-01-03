@@ -31,11 +31,11 @@ extern void exit();
 
 #include <wfdb/wfdb.h>
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+
+int main(int argc, char *argv[])
 {
-    char *filename, *pname, *prog_name();
+    char *filename, *pname;
     int status = 0;
 
     pname = prog_name(argv[0]);
@@ -86,8 +86,7 @@ char *argv[];
     /*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

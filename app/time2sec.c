@@ -26,9 +26,7 @@ _______________________________________________________________________________
 #include <stdio.h>
 #include <wfdb/wfdb.h>
 
-main(argc, argv)
-int argc;
-char **argv;
+int main(int argc, char **argv)
 {
     double t;
     int milliseconds;

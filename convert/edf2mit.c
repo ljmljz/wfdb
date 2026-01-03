@@ -25,16 +25,57 @@ _______________________________________________________________________________
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wfdb/wfdb.h>
 
-char *pname;
+static char *help_strings[] = {
+ "usage: %s [OPTIONS ...]\n",
+ "where OPTIONS may include:",
+ " -b          input is in big-endian byte order (default: little-endian)",
+ " -h          print this usage summary",
+ " -i EDFILE   read the specified European Data Format file",
+ " -r RECORD   create the specified RECORD (default: input file name without",
+ "              suffix)",
+ " -s SIGNAL [SIGNAL ...]  copy only the specified signal(s) (use signal",
+ "              numbers, beginning with zero;  default: copy all signals)",
+ " -v          print debugging output",
+ "This program reads an EDF file and creates MIT-format signal and header",
+ "files containing the same data.",
+NULL
+};
 
-main(argc, argv)
-int argc;
-char **argv;
+static void help(const char *pname)
+{
+    int i;
+
+    (void)fprintf(stderr, help_strings[0], pname);
+    for (i = 1; help_strings[i] != NULL; i++)
+	(void)fprintf(stderr, "%s\n", help_strings[i]);
+}
+
+/* Calculate the greatest common divisor of x and y.  This function uses
+   Euclid's algorithm, modified so that an exact answer is not required if the
+   (possibly non-integral) arguments do not have a common divisor that can be
+   represented exactly. */
+static double gcd(double x, double y)
+{
+    double tol;
+
+    if (x > y) tol = 0.001*y;
+    else tol = 0.001*x;
+
+    while (1) {
+	if (x > y && x-y > tol) x -= y;
+	else if (y > x && y-x > tol) y -= x;
+	else return (x);
+    }
+}
+
+int main(int argc, char **argv)
 {
     char buf[81], record[WFDB_MAXRNL+1], **vi, **vin;
-    double *sigpmax, *sigpmin, *sampfreq, spr, sps, gcd();
+    double *sigpmax, *sigpmin, *sampfreq, spr, sps;
     FILE *ifile = NULL;
     int big_endian = 0, fpb, h, i, j, k, l, nsig, nosig = 0, *siglist = NULL,
 	*spb, tspb = 0, ispf = 0, tspf = 0, vflag = 0,
@@ -42,9 +83,8 @@ char **argv;
     long adcrange, *sigdmax, *sigdmin;
     WFDB_Sample *vo, *vout;
     WFDB_Siginfo *si, *so;
-    void help();
+    const char *pname = argv[0];
 
-    pname = argv[0];
     record[0] = '\0';
     for (i = 1; i < argc; i++) {
 	if (*argv[i] == '-') switch (argv[i][1]) {
@@ -52,7 +92,7 @@ char **argv;
 	    big_endian = 1;
 	    break;
 	  case 'h':	/* show usage and quit */
-	    help();
+	    help(pname);
 	    exit(0);
 	  case 'i':	/* file name follows */
 	    if (++i < argc) {
@@ -114,13 +154,13 @@ char **argv;
     }
 
     if (ifile == NULL) {
-	help();
+	help(pname);
 	exit(1);
     }
 
     if (record[0] == '\0' || newheader(record) < 0) {
 	fprintf(stderr, "\n");
-	help();
+	help(pname);
 	(void)fprintf(stderr,
   "\nRun %s again, specifying a valid name for the output record,\n", argv[0]);
 	(void)fprintf(stderr,
@@ -427,48 +467,4 @@ char **argv;
     newheader(record);
     wfdbquit();
     exit(0);
-}
-
-/* Calculate the greatest common divisor of x and y.  This function uses
-   Euclid's algorithm, modified so that an exact answer is not required if the
-   (possibly non-integral) arguments do not have a common divisor that can be
-   represented exactly. */
-double gcd(x, y)
-double x, y;
-{
-    double tol;
-
-    if (x > y) tol = 0.001*y;
-    else tol = 0.001*x;
-
-    while (1) {
-	if (x > y && x-y > tol) x -= y;
-	else if (y > x && y-x > tol) y -= x;
-	else return (x);
-    }
-}
-
-static char *help_strings[] = {
- "usage: %s [OPTIONS ...]\n",
- "where OPTIONS may include:",
- " -b          input is in big-endian byte order (default: little-endian)",
- " -h          print this usage summary",
- " -i EDFILE   read the specified European Data Format file",
- " -r RECORD   create the specified RECORD (default: input file name without",
- "              suffix)",
- " -s SIGNAL [SIGNAL ...]  copy only the specified signal(s) (use signal",
- "              numbers, beginning with zero;  default: copy all signals)",
- " -v          print debugging output",
- "This program reads an EDF file and creates MIT-format signal and header",
- "files containing the same data.",
-NULL
-};
-
-void help()
-{
-    int i;
-
-    (void)fprintf(stderr, help_strings[0], pname);
-    for (i = 1; help_strings[i] != NULL; i++)
-	(void)fprintf(stderr, "%s\n", help_strings[i]);
 }

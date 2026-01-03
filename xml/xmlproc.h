@@ -1,7 +1,7 @@
-/* file: xmlproc.h	G. Moody	20 August 2010
-			Last revised:	22 August 2010
+/* file: xmlproc.h	G. Moody	28 June 2010
+                 	Last revised:	27 April 2020
 -------------------------------------------------------------------------------
-xmlproc: generic functions for processing XML files
+xmlproc: Common XML processing functions for WFDB XML tools
 Copyright (C) 2010 George B. Moody
 
 This program is free software; you can redistribute it and/or modify it under
@@ -44,13 +44,13 @@ int qflag, vflag;
 
 int main(int argc, char **argv)
 {
-    FILE *ifile;
+  FILE *ifile;
     int i;
     void process(FILE *ifile);
 
     pname = argv[0];
     if (argc < 2) help();
-    for (i = 1; i < argc; i++) {
+  for (i = 1; i < argc; i++) {
 	if (argv[i][0] == '-') {
 	    switch (argv[i][1]) {
 	    case '\0': process(stdin); break;
@@ -59,20 +59,20 @@ int main(int argc, char **argv)
 	    case 'v': vflag = 1; break;
 	    default: fprintf(stderr, "%s: unrecognized option %s\n",
 			     argv[0], argv[i]);
-		exit(1);
+	exit(1);
 		break;
-	    }
-	}
+    }
+  }
 	else {
 	    ifile = fopen(argv[i], "rt");
 	    if (ifile) {
-		process(ifile);
-		fclose(ifile);
-	    }
+      process(ifile);
+      fclose(ifile);
+    }
 	    else {
 		fprintf(stderr, "%s: can't open %s\n", argv[0], argv[i]);
 		exit(1);
-	    }
+  }
 	}	
     }
     exit(0);
@@ -97,7 +97,7 @@ void process(FILE *ifile)
     int done = 0, len;
     static char buf[BUFLEN], userdata[DATALEN];
     XML_Parser p = XML_ParserCreate(NULL);
-
+      
     if (! p) {
 	fprintf(stderr, "Couldn't allocate memory for parser\n");
 	exit(2);
@@ -120,7 +120,7 @@ void process(FILE *ifile)
 		    XML_GetCurrentLineNumber(p),
 		    XML_ErrorString(XML_GetErrorCode(p)));
 	    exit(-1);
-	}
+  }
     } while (!done);
     XML_ParserFree(p);
     cleanup();

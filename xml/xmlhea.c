@@ -31,26 +31,9 @@ The inverse transformation can be performed by 'heaxml'.
 #include <wfdb/wfdb.h>
 #include "xmlproc.h"	/* provides main(), process(), DATALEN, qflag, vflag */
 
-void write_header(char *recname);
-void writeinfo(char *tag, char *data);
-
-char *content, *dp;
-int depth, plen;
-
-WFDB_Siginfo *si;
-char *record, *rec, *sfname, *age, *sex, **diagnosis, *extra, **medication,
-    **other;
-double sps, cps, cbase, second;
-int nseg, nsig, sig, dx, rx, ox;
-int year, month, day, hour, minute;
-WFDB_Time length;
-long offset;
-WFDB_Seginfo *segi;
-
-int mnsig;
-double msps, mcps, mcbase, msecond;
-int myear, mmonth, mday, mhour, mminute;
-WFDB_Time mlength;
+/* Function prototypes */
+static void write_header(char *recname);
+static void writeinfo(char *tag, char *data);
 
 struct asiginfo {
     char *fname;
@@ -58,7 +41,51 @@ struct asiginfo {
     int skew;
     long offset;
 } *sa;
-static char info[254], *ip;
+
+static char *content;
+static char *dp;
+static int depth;
+static int plen;
+static WFDB_Siginfo *si;
+static char *record;
+static char *rec;
+static char *sfname;
+static char *age;
+static char *sex;
+static char **diagnosis;
+static char *extra;
+static char **medication;
+static char **other;
+static double sps;
+static double cps;
+static double cbase;
+static double second;
+static long nseg;
+static int sig, nsig;
+static WFDB_Seginfo *segi;
+static int dx;
+static int rx;
+static int ox;
+static int year;
+static int month;
+static int day;
+static int hour;
+static int minute;
+static long length;
+static long offset;
+static int mnsig;
+static double msps;
+static double mcps;
+static double mcbase;
+static double msecond;
+static int myear;
+static int mmonth;
+static int mday;
+static int mhour;
+static int mminute;
+static long mlength;
+static char info[254];
+static char *ip;
 
 void XMLCALL start(void *data, const char *el, const char **attr)
 {
@@ -339,7 +366,7 @@ void XMLCALL end(void *data, const char *el)
   if (vflag) { printf("."); fflush(stdout); }
 }
 
-void write_header(char *recname)
+static void write_header(char *recname)
 {
     int i, dxlen, rxlen, oxlen;
 
@@ -358,7 +385,7 @@ void write_header(char *recname)
 	else
 	    sprintf(tstart, "%02d:%02d:%g", hour, minute, second);
 	setbasetime(tstart);
-    }
+      }
 
     /* IMPORTANT: Before invoking osigopen, si[*].fname is set to "~", and
        si[*].fmt is set to 0, to ensure that osigfopen does not actually create
@@ -390,7 +417,7 @@ void write_header(char *recname)
     if (dx == 1 && strlen(diagnosis[0]) < 78 - (strlen(info) + 14)) {
 	sprintf(info + strlen(info), " <diagnoses>: %s", diagnosis[0]);
 	dx = 0;
-    }
+  }
     if (rx == 0) sprintf(info + strlen(info), " <medications>: ?");
     if (rx == 1 && strlen(medication[0]) < 78 - (strlen(info) + 16)) {
 	sprintf(info + strlen(info), " <medications>: %s", medication[0]);
@@ -412,7 +439,7 @@ void write_header(char *recname)
     wfdbquit();	/* flush any pending writes and close files */
 }
 
-void writeinfo(char *tag, char *data)
+static void writeinfo(char *tag, char *data)
 {
     char info[80];
     int len = strlen(tag) + strlen(data);
@@ -427,7 +454,7 @@ void writeinfo(char *tag, char *data)
     strcpy(info, tag);
     strcat(info, data);
     putinfo(info);
-}
+    }
 
 void cleanup()
 {
@@ -445,7 +472,7 @@ void cleanup()
     msps = mcps = mcbase = msecond = 0;
     myear = mmonth = mday = mhour = mminute = 0;
     mlength = 0;
-    sa = NULL;
+      sa = NULL;
     info[0] = '\0';
     ip = NULL;
 }

@@ -31,9 +31,12 @@ _______________________________________________________________________________
 /* The following definition yields dither with a triangular PDF in (-1,1). */
 #define DITHER	        (((double)rand() + (double)rand())/RAND_MAX - 1.0)
 
-char *pname;
-unsigned int ncols = 0;
-unsigned int nosig = 0;
+static char *pname;
+static unsigned int ncols = 0;
+static unsigned int nosig = 0;
+
+static char *prog_name(char *s);
+static void help(void);
 
 char *read_line(FILE *ifile, char rsep)
 {
@@ -186,28 +189,21 @@ Tokenarray *parseline(char *line, Parsemode *pmode)
     return (ta);
 }
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     char **ap, *cp, **desc, *gain = "", *ifname = "(stdin)",
 	*line = NULL, ofname[40], *p, *record = NULL, rsep = '\n',
-	*scale = "", sflag = 0, trim = 0, Xflag = 0, **units, *prog_name();
+	*scale = "", sflag = 0, trim = 0, Xflag = 0, **units;
     static char btime[25], **dstrings, **ustrings;
     double freq = WFDB_DEFFREQ, *scalef, v;
-#ifndef atof
-    double atof();
-#endif
+
     int c, cf = 0, dflag = 0, format = 16, *fv = NULL, i, j, mf, zflag = 0;
     FILE *ifile = stdin;
     long t = 0L, t0 = 0L, t1 = 0L;
-#ifndef atol
-    long atol();
-#endif
+
     Tokenarray *ta;
     WFDB_Sample *vout;
     WFDB_Siginfo *si;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -580,8 +576,7 @@ char *argv[];
     exit(0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -642,7 +637,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

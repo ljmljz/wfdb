@@ -27,17 +27,18 @@ _______________________________________________________________________________
 #include <wfdb/wfdb.h>
 #include <wfdb/wfdblib.h>
 
-char *pname;
-int fmt = 0;	/* use specified output format if fmt > 0 */
-int mflag = 0;	/* try to preserve segments if non-zero */
-int sflag = 0;	/* suppress copying info if non-zero */
+static char *pname;
+static int fmt = 0;	/* use specified output format if fmt > 0 */
+static int mflag = 0;	/* try to preserve segments if non-zero */
+static int sflag = 0;	/* suppress copying info if non-zero */
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char *argv[])
 {
     char *nrec = NULL, *irec = NULL, *startp = NULL, *endp = NULL;
-    char **annotators, *length = NULL, *prog_name();
+    char **annotators, *length = NULL;
     int i, nann = 0, nsig = 0;
     WFDB_Time from = 0L, to = 0L, endt = 0L;
     void copy_ann(char *nrec, char *irec, WFDB_Time from, WFDB_Time to,
@@ -45,7 +46,6 @@ char *argv[];
     void copy_sig(char *nrec, char *irec, WFDB_Time from, WFDB_Time to,
 		  int mflag);
     void copy_info(char *irec, char *startp);
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -462,8 +462,7 @@ void copy_info(char *irec, char *startp)
 }
 
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -501,7 +500,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

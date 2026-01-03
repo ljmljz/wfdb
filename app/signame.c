@@ -26,14 +26,15 @@ _______________________________________________________________________________
 #include <stdio.h>
 #include <wfdb/wfdb.h>
 
-char *pname;
+static char *pname;
+static char *prog_name(char *s);
+static void help(void);
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-    char *p, *record = NULL, *prog_name();
+    char *p, *record = NULL;
     int i, isiglist = 0, j, nsig, nosig = 0;
     WFDB_Siginfo *si;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -98,8 +99,7 @@ main(int argc, char **argv)
     exit(0);
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -127,7 +127,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

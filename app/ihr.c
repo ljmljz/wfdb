@@ -35,23 +35,23 @@ extern void exit();
 #define mamap
 #define annpos
 #include <wfdb/ecgmap.h>
+#include <math.h>
 
-char *pname;
+static char *pname;
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+static void help(void);
+
+int main(int argc, char *argv[])
 {
-    char *record = NULL, *prog_name();
-    double dmhr,  ihr, ihrlast, mhr = 70.0, sph, spm, sps, tol = 10.0,
-	atof(), fabs();
+    char *record = NULL;
+    double dmhr,  ihr, ihrlast, mhr = 70.0, sph, spm, sps, tol = 10.0;
     int i, j, lastann = NOTQRS, last2ann = NOTQRS, tformat = 1, vflag = 1,
 	xflag = 0, lastint = 1, thisint = 0;
     WFDB_Time from = 0L, to = 0L, lasttime = -9999L;
     static char flag[ACMAX+1];
     static WFDB_Anninfo ai;
     WFDB_Annotation annot;
-    void help();
 
     pname = prog_name(argv[0]);
     flag[0] = 1;
@@ -166,9 +166,9 @@ char *argv[];
     if (annopen(record, &ai, 1) < 0) /* open annotation file */
 	exit(2);
 
-    if (from && iannsettime(strtim(argv[(int)from])) < 0) exit(2);
+    if (from && iannsettime(strtim(argv[from])) < 0) exit(2);
     if (to) {
-        to = strtim(argv[(int)to]);
+        to = strtim(argv[to]);
 	if (to < (WFDB_Time)0) to = -to;
     }
 
@@ -214,11 +214,11 @@ char *argv[];
 	lastint = thisint;
 	thisint = 1;
     }
-    exit(0);			/*NOTREACHED*/
+    exit(0);
+    return 0;
 }
 
-char *prog_name(s)
-char *s;
+char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -237,7 +237,7 @@ char *s;
     return (p+1);
 }
 
-static char *help_strings[] = {
+static const char *help_strings[] = {
  "usage: %s -r RECORD -a ANNOTATOR [OPTIONS ...]\n",
  "where RECORD and ANNOTATOR specify the input, and OPTIONS may include:",
  " -d TOL   reject beat-to-beat HR changes > TOL bpm (default: TOL = 10)",
@@ -266,7 +266,7 @@ static char *help_strings[] = {
     NULL
 };
 
-void help()
+void help(void)
 {
     int i;
 

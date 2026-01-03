@@ -43,7 +43,7 @@ extern void exit();
 /* The PostScript code below is the prolog for the scatter plot.  Portions of
    this code were extracted from the output of `plt', a 2-D plotting package
    written by Paul Albrecht at MIT. */
-char *prolog[] = {
+static char *prolog[] = {
 "%!",
 "save 100 dict begin /plotstm exch def",
 "/M {newpath PMTX transform moveto} def",
@@ -87,14 +87,14 @@ char *prolog[] = {
 (char *)NULL
 };
 
-char *pname;		/* name by which this program was invoked */
+static char *pname;		/* name by which this program was invoked */
 
-main(argc, argv)
-int argc;
-char *argv[];
+static char *prog_name(char *s);
+
+int main(int argc, char *argv[])
 {
     static char buf[256];
-    char *prog_name();
+    
     FILE *ifile;
     int i;
     static long n, nd;
@@ -162,8 +162,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 

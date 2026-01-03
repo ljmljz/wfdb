@@ -45,25 +45,23 @@ extern void exit();
 #define annpos
 #include <wfdb/ecgmap.h>
 
-char *pname;
+static char *pname;
+static char *prog_name(char *s);
+static void help(void);
 
-main(argc, argv)	
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char *record = NULL, *prog_name();
+    char *record = NULL;
     signed char cflag = 0, chanmatch, nflag = 0, nummatch, sflag = 0, submatch;
     double sps, tps, tpm, tph, n;
     int sprec, mprec, hprec;
     int eflag = 0, i, j, vflag = 0, xflag = 0;
-    long afrom = 0L, anum = 0L, ato = 0L, bfrom = 0L, bnum = 0L, bto = 0L,
-	atol();
+    long afrom = 0L, anum = 0L, ato = 0L, bfrom = 0L, bnum = 0L, bto = 0L;
     WFDB_Time from = 0L, to = 0L;
     static char flag[ACMAX+1];
     static WFDB_Anninfo ai;
     WFDB_Annotation annot;
     WFDB_Time sample_num;
-    void help();
 
     pname = prog_name(argv[0]);
 
@@ -326,8 +324,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-char *prog_name(s)
-char *s;
+static char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
@@ -363,7 +360,7 @@ static char *help_strings[] = {
 NULL
 };
 
-void help()
+static void help(void)
 {
     int i;
 

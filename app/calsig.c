@@ -69,17 +69,15 @@ struct info_rec {
     struct info_rec *next;
     char *info_string;
 } *first_rec, *current_rec, *last_rec;
-char *pname, *prog_name();
-void rewrite_header(), help();
+char *pname, *prog_name(char *);
+void rewrite_header(char *), help();
 WFDB_Siginfo *s;
 WFDB_Sample *b;
 WFDB_Gain *g;
 
-main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
-    char *cfname=NULL, *p, *record = NULL, *t0p = NULL, *t1p = NULL, *getenv();
+    char *cfname=NULL, *p, *record = NULL, *t0p = NULL, *t1p = NULL;
     int do_skip = 1,  **h, **ho, i, multi_seg = 0, n = 0, *o, qflag = 0,
 	Qflag = 0, *v, vflag = 0, *vmax, *vmin;
     WFDB_Time nsamp, t, t0 = 0L, t1;
@@ -545,8 +543,7 @@ char *argv[];
     exit(0);	/*NOTREACHED*/
 }
 
-void rewrite_header(record)
-char *record;
+void rewrite_header(char *record)
 {
     char *p;
     int i;
@@ -603,8 +600,7 @@ char *record;
 }
 
 
-char *prog_name(s)
-char *s;
+char *prog_name(char *s)
 {
     char *p = s + strlen(s);
 
