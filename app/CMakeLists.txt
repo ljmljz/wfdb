@@ -62,7 +62,7 @@ foreach(app ${WFDB_APPS})
         add_executable(${app} ${app}.c)
         
         # Link with WFDB library
-        target_link_libraries(${app} wfdb)
+        target_link_libraries(${app} wfdb m)
         
         # Set output name with extension
         if(WIN32)
